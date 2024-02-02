@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Greeting message
-echo "Welcome to the Proxmox Cloud-init Template Downloader by HOKOHOST"
-echo "Visit https://hokohost.com/scripts for updates."
-echo "Consider supporting our work by donating at https://hokohost.com/donate."
+echo "This is not a working script"
+echo "Please use osdl.sh instead of osdlq.sh"
+echo "This script is only for testing and dev."
 echo ""
 
 # Define an ordered list for cloud-init OS images
