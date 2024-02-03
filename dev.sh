@@ -129,10 +129,8 @@ install_qemu_guest_agent() {
             esac
           done
         fi
-        # Ensure the path to the disk image is correct
-        disk_image_path="$storage/var/lib/vz/images/$vmid/$disk"
 
-        if virt-customize -a "$disk_path" --install qemu-guest-agent; then
+        if virt-customize -a "$storage/$disk_path" --install qemu-guest-agent; then
           echo "qemu-guest-agent has been successfully installed in the image."
         else
           echo "Failed to install qemu-guest-agent."
