@@ -102,7 +102,7 @@ setup_template() {
           done
         fi
 
-        if virt-customize -v -x -a "$disk_path" --install qemu-guest-agent; then
+        if virt-customize -a "/var/tmp/image.qcow2" --install qemu-guest-agent; then
           echo "qemu-guest-agent has been successfully installed in the image."
         else
           echo "Failed to install qemu-guest-agent."
