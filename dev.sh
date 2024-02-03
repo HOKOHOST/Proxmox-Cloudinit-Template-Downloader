@@ -130,7 +130,7 @@ install_qemu_guest_agent() {
           done
         fi
         # Ensure the path to the disk image is correct
-        disk_image_path="$storage/images/$vmid/$disk"
+        disk_image_path="$storage/var/lib/vz/images/$vmid/$disk"
 
         if virt-customize -a "$disk_image_path" --install qemu-guest-agent; then
           echo "qemu-guest-agent has been successfully installed in the image."
