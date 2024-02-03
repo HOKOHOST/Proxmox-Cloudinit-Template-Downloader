@@ -157,8 +157,6 @@ while true; do
   select_os
   specify_storage
   specify_vmid
-  if setup_template; then
-    install_qemu_guest_agent
-  fi
+  setup_template
   want_to_continue
 done
