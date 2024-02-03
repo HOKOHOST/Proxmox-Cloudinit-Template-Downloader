@@ -77,36 +77,7 @@ setup_template() {
   cd /var/tmp || exit
   wget -O image.qcow2 "$image_url" --quiet --show-progress
 
-  echo "Creating the VM as '$os_name'..."
-  qm create "$vmid" --name "$os_name" --memory 2048 --net0 virtio,bridge=vmbr0
-
-  echo "Importing the disk image..."
-  disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
-  disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
-  disk_path="${disk#*:}"
-
-  if [[ -n "$disk_path" ]]; then
-    echo "Disk image imported as $disk_path"
-
-    echo "Configuring VM to use the imported disk..."
-    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
-    qm set "$vmid" --ide2 "$storage":cloudinit
-    qm set "$vmid" --boot c --bootdisk scsi0
-    qm set "$vmid" --serial0 socket
-    qm template "$vmid"
-
-    echo "New template created for $os with VMID $vmid."
-
-    echo "Deleting the downloaded image to save space..."
-    rm -f /var/tmp/image.qcow2
-  else
-    echo "Failed to import the disk image."
-    return 1
-  fi
-}
-
-install_qemu_guest_agent() {
-  while true; do
+    while true; do
     read -rp "Do you want to install qemu-guest-agent in the VM image? [y/N] " install_qga
     case "$install_qga" in
       y|Y)
@@ -144,6 +115,33 @@ install_qemu_guest_agent() {
         echo "Invalid input. Please answer y or n." ;;
     esac
   done
+
+  echo "Creating the VM as '$os_name'..."
+  qm create "$vmid" --name "$os_name" --memory 2048 --net0 virtio,bridge=vmbr0
+
+  echo "Importing the disk image..."
+  disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
+  disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
+  disk_path="${disk#*:}"
+
+  if [[ -n "$disk_path" ]]; then
+    echo "Disk image imported as $disk_path"
+
+    echo "Configuring VM to use the imported disk..."
+    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
+    qm set "$vmid" --ide2 "$storage":cloudinit
+    qm set "$vmid" --boot c --bootdisk scsi0
+    qm set "$vmid" --serial0 socket
+    qm template "$vmid"
+
+    echo "New template created for $os with VMID $vmid."
+
+    echo "Deleting the downloaded image to save space..."
+    rm -f /var/tmp/image.qcow2
+  else
+    echo "Failed to import the disk image."
+    return 1
+  fi
 }
 
 want_to_continue() {
