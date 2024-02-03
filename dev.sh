@@ -137,6 +137,11 @@ install_qemu_guest_agent() {
             esac
           done
         fi
+<<<<<<< HEAD
+=======
+        # Ensure the path to the disk image is correct
+        disk_image_path="$storage/images/$vmid/$disk"
+>>>>>>> parent of 4e5a99c (Update dev.sh)
 
         if [ -f "$disk_image_path" ]; then
           if virt-customize -a "$disk_image_path" --install qemu-guest-agent; then
