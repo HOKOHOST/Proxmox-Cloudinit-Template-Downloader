@@ -24,7 +24,7 @@ The script supports a predefined list of cloud-init enabled OS images, which cur
 1. Downloading the script:
 
     ```bash
-    wget https://raw.githubusercontent.com/HOKOHOST/Proxmox-Cloudinit-Template-Downloader/main/osdl.sh
+    wget osdl.sh/osdl.sh
     ```
 
 2. Ensure the `osdl.sh` script is executable:
