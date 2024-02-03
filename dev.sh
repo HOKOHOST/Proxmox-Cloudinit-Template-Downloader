@@ -141,7 +141,7 @@ while true; do
         fi
 
         if virt-customize -a "/var/tmp/image.qcow2" --edit '/etc/ssh/sshd_config:s/^#PasswordAuthentication no/PasswordAuthentication yes/'; then
-          echo "PasswordAuthentication has been successfully allowed in the image."
+          echo "ssh access has been successfully allowed in the image."
         else
           echo "Failed to enable ssh access."
           exit 1
