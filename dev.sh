@@ -130,7 +130,7 @@ install_qemu_guest_agent() {
           done
         fi
 
-        if virt-customize -a "$storage/$disk_path" --install qemu-guest-agent; then
+        if virt-customize -v -x -a "$disk_path" --install qemu-guest-agent; then
           echo "qemu-guest-agent has been successfully installed in the image."
         else
           echo "Failed to install qemu-guest-agent."
