@@ -82,23 +82,25 @@ setup_template() {
 
   echo "Importing the disk image..."
   disk_import_output=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
-  echo "Output from import: $disk_import_output"
 
-  storage_volume_identifier=$(echo "$disk_import_output" | grep -oP 'disk-\K\S+')
+  # Extract the storage volume identifier from the output
+  storage_volume_identifier=$(echo "$disk_import_output" | grep 'Successfully imported disk image' | awk '{print $NF}')
 
   if [ -z "$storage_volume_identifier" ]; then
     echo "Failed to capture storage volume identifier from import output."
     echo "Output from import: $disk_import_output"
+    echo "Failed to import disk image."
     rm -f image.qcow2
     exit 1
   fi
 
-  disk_path="/var/lib/vz/images/$vmid/$storage_volume_identifier"
+  # Construct the full disk path using the storage identifier and VMID
+  full_disk_path="/dev/$storage/$storage_volume_identifier"
 
-  echo "Disk image imported and available as $disk_path"
+  echo "Disk image imported and available as $full_disk_path"
 
   echo "Configuring VM to use the imported disk..."
-  qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$storage:$storage_volume_identifier"
+  qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$full_disk_path"
   qm set "$vmid" --ide2 "$storage":cloudinit
   qm set "$vmid" --boot c --bootdisk scsi0
   qm set "$vmid" --serial0 socket
@@ -108,6 +110,9 @@ setup_template() {
 
   echo "Deleting the downloaded image to save space..."
   rm -f image.qcow2
+
+  # Return the full path of the imported disk image for further use
+  echo "$full_disk_path"
 }
 
 install_qemu_guest_agent() {
