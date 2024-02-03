@@ -81,31 +81,44 @@ setup_template() {
   qm create "$vmid" --name "$os_name" --memory 2048 --net0 virtio,bridge=vmbr0
 
   echo "Importing the disk image..."
-  disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
-  disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
-  disk_path="${disk#*:}"
+  disk_import_output=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
 
-  if [[ -n "$disk_path" ]]; then
-    echo "Disk image imported as $disk_path"
+  # Extract the storage volume identifier from the output
+  storage_volume_identifier=$(echo "$disk_import_output" | grep 'Successfully imported disk image' | awk '{print $NF}')
 
-    echo "Configuring VM to use the imported disk..."
-    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
-    qm set "$vmid" --ide2 "$storage":cloudinit
-    qm set "$vmid" --boot c --bootdisk scsi0
-    qm set "$vmid" --serial0 socket
-    qm template "$vmid"
-
-    echo "New template created for $os with VMID $vmid."
-
-    echo "Deleting the downloaded image to save space..."
-    rm -f /var/tmp/image.qcow2
-  else
-    echo "Failed to import the disk image."
-    return 1
+  if [ -z "$storage_volume_identifier" ]; then
+    echo "Failed to capture storage volume identifier from import output."
+    echo "Output from import: $disk_import_output"
+    echo "Failed to import disk image."
+    rm -f image.qcow2
+    exit 1
   fi
+
+  # Construct the full disk path using the storage identifier and VMID
+  full_disk_path="/dev/$storage/$storage_volume_identifier"
+
+  echo "Disk image imported and available as $full_disk_path"
+
+  echo "Configuring VM to use the imported disk..."
+  qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$full_disk_path"
+  qm set "$vmid" --ide2 "$storage":cloudinit
+  qm set "$vmid" --boot c --bootdisk scsi0
+  qm set "$vmid" --serial0 socket
+  qm template "$vmid"
+
+  echo "New template created for $os with VMID $vmid."
+
+  echo "Deleting the downloaded image to save space..."
+  rm -f image.qcow2
+
+  # Return the full path of the imported disk image for further use
+  echo "$full_disk_path"
 }
 
 install_qemu_guest_agent() {
+  # Make sure to take the disk_image_path declared globally
+  global disk_image_path
+
   while true; do
     read -rp "Do you want to install qemu-guest-agent in the VM image? [y/N] " install_qga
     case "$install_qga" in
@@ -129,13 +142,16 @@ install_qemu_guest_agent() {
             esac
           done
         fi
-        # Ensure the path to the disk image is correct
-        disk_image_path="$storage/var/lib/vz/images/$vmid/$disk"
 
-        if virt-customize -a "$disk_image_path" --install qemu-guest-agent; then
-          echo "qemu-guest-agent has been successfully installed in the image."
+        if [ -f "$disk_image_path" ]; then
+          if virt-customize -a "$disk_image_path" --install qemu-guest-agent; then
+            echo "qemu-guest-agent has been successfully installed in the image."
+          else
+            echo "Failed to install qemu-guest-agent."
+            exit 1
+          fi
         else
-          echo "Failed to install qemu-guest-agent."
+          echo "Disk image not found at $disk_image_path."
           exit 1
         fi
         break ;;
