@@ -77,7 +77,7 @@ setup_template() {
   cd /var/tmp || exit
   wget -O image.qcow2 "$image_url" --quiet --show-progress
 
-    while true; do
+  while true; do
     read -rp "Do you want to install qemu-guest-agent in the VM image? [y/N] " install_qga
     case "$install_qga" in
       y|Y)
@@ -110,6 +110,45 @@ setup_template() {
         break ;;
       n|N)
         echo "Continuing without installing qemu-guest-agent."
+        break ;;
+      *)
+        echo "Invalid input. Please answer y or n." ;;
+    esac
+  done
+  
+while true; do
+    read -rp "Do you want to allow PasswordAuthentication in the VM image? (If default is no) [y/N] " install_qga
+    case "$install_qga" in
+      y|Y)
+        if ! command -v virt-customize &>/dev/null; then
+          while true; do
+            read -rp "virt-customize is required but not installed. Install now? [y/N] " install_vc
+            case "$install_vc" in
+              y|Y)
+                apt-get update && apt-get install -y libguestfs-tools
+                if [ $? -ne 0 ]; then
+                  echo "Failed to install libguestfs-tools. Please manually install the package and try again."
+                  exit 1
+                fi
+                break ;;
+              n|N)
+                echo "Skipping the PasswordAuthentication setup."
+                return 0 ;;
+              *)
+                echo "Invalid input. Please answer y or n." ;;
+            esac
+          done
+        fi
+
+        if virt-customize -a "/var/tmp/image.qcow2" --edit '/etc/ssh/sshd_config:s/^#PasswordAuthentication no/PasswordAuthentication yes/'; then
+          echo "PasswordAuthentication has been successfully installed in the image."
+        else
+          echo "Failed to setup SSH PasswordAuthentication."
+          exit 1
+        fi
+        break ;;
+      n|N)
+        echo "Continuing without setup SSH PasswordAuthentication"
         break ;;
       *)
         echo "Invalid input. Please answer y or n." ;;
