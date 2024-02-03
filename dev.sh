@@ -1,14 +1,22 @@
 #!/bin/bash
 
 # Greeting message
-clear
+echo ""  # For better readability :)
+echo ""  # For better readability :)
+echo ""  # For better readability :)
+echo ""  # For better readability :)
+echo ""  # For better readability :)
+echo ""  # For better readability :)
+echo ""  # For better readability :)
+echo ""  # For better readability :)
 echo "This script is proudly presented to you by HOKOHOST."
 echo "Stay updated with the latest versions by visiting our website at https://hokohost.com/scripts."
 echo "If you find this script valuable and would like to support our work,"
 echo "Please consider making a donation at https://hokohost.com/donate."
 echo "Your support is greatly appreciated!"
-echo ""
+echo ""  # For better readability :)
 
+# Define an ordered list for cloud-init OS images
 os_images_ordered=(
   "Debian 10 EOL-No Support"
   "Debian 11"
@@ -19,6 +27,7 @@ os_images_ordered=(
   "Alma Linux 9"
 )
 
+# Associative array mapping the OS names to their respective image URLs
 declare -A os_images=(
   ["Debian 10 EOL-No Support"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
   ["Debian 11"]="https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
@@ -29,6 +38,7 @@ declare -A os_images=(
   ["Alma Linux 9"]="https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
 )
 
+# Function to select an OS using the ordered list
 select_os() {
   echo "Please select the OS you want to import:"
   select os_choice in "${os_images_ordered[@]}"; do
@@ -43,34 +53,19 @@ select_os() {
   done
 }
 
+# Function to specify the storage target
 specify_storage() {
-  while true; do
-    read -rp "Enter the target storage (e.g., local-lvm): " storage
-    if [ -z "$storage" ]; then
-      echo "You must input a storage to continue."
-    elif ! pvesm list "$storage" &>/dev/null; then
-      echo "The specified storage does not exist. Please try again."
-    else
-      echo "Selected storage: $storage"
-      break
-    fi
-  done
+  read -rp "Enter the target storage (e.g., local): " storage
+  echo "Selected storage: $storage"
 }
 
+# Function to specify the VM ID
 specify_vmid() {
-  while true; do
-    read -rp "Enter the VMID you want to assign (e.g., 1000): " vmid
-    if [ -z "$vmid" ]; then
-      echo "You must input a VMID to continue."
-    elif qm status "$vmid" &>/dev/null; then
-      echo "The VMID $vmid is already in use. Please enter another one."
-    else
-      echo "Selected VMID: $vmid"
-      break
-    fi
-  done
+  read -rp "Enter the VMID you want to assign (e.g., 1000): " vmid
+  echo "Selected VMID: $vmid"
 }
 
+# Function to download and setup the template
 setup_template() {
   image_url="${os_images[$os]}"
   echo "Downloading the OS image from $image_url..."
@@ -81,93 +76,35 @@ setup_template() {
   qm create "$vmid" --name "$os_name" --memory 2048 --net0 virtio,bridge=vmbr0
 
   echo "Importing the disk image..."
-  disk_import_output=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
-  echo "Output from import: $disk_import_output"
+  disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
+  disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
+  disk_path="${disk#*:}"
 
-  storage_volume_identifier=$(echo "$disk_import_output" | grep -oP 'disk-\K\S+')
+  if [[ -n "$disk_path" ]]; then
+    echo "Disk image imported as $disk_path"
 
-  if [ -z "$storage_volume_identifier" ]; then
-    echo "Failed to capture storage volume identifier from import output."
-    echo "Output from import: $disk_import_output"
-    rm -f image.qcow2
-    exit 1
+    echo "Configuring VM to use the imported disk..."
+    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
+    qm set "$vmid" --ide2 "$storage":cloudinit
+    qm set "$vmid" --boot c --bootdisk scsi0
+    qm set "$vmid" --serial0 socket
+    qm template "$vmid"
+
+    echo "New template created for $os with VMID $vmid."
+
+    echo "Deleting the downloaded image to save space..."
+    rm -f /var/tmp/image.qcow2
+  else
+    echo "Failed to import the disk image."
+    return 1
   fi
-
-  disk_path="/var/lib/vz/images/$vmid/$storage_volume_identifier"
-
-  echo "Disk image imported and available as $disk_path"
-
-  echo "Configuring VM to use the imported disk..."
-  qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$storage:$storage_volume_identifier"
-  qm set "$vmid" --ide2 "$storage":cloudinit
-  qm set "$vmid" --boot c --bootdisk scsi0
-  qm set "$vmid" --serial0 socket
-  qm template "$vmid"
-
-  echo "New template created for $os with VMID $vmid."
-
-  echo "Deleting the downloaded image to save space..."
-  rm -f image.qcow2
 }
 
-install_qemu_guest_agent() {
-  # Make sure to take the disk_image_path declared globally
-  global disk_image_path
-
-  while true; do
-    read -rp "Do you want to install qemu-guest-agent in the VM image? [y/N] " install_qga
-    case "$install_qga" in
-      y|Y)
-        if ! command -v virt-customize &>/dev/null; then
-          while true; do
-            read -rp "virt-customize is required but not installed. Install now? [y/N] " install_vc
-            case "$install_vc" in
-              y|Y)
-                apt-get update && apt-get install -y libguestfs-tools
-                if [ $? -ne 0 ]; then
-                  echo "Failed to install libguestfs-tools. Please manually install the package and try again."
-                  exit 1
-                fi
-                break ;;
-              n|N)
-                echo "Skipping the installation of qemu-guest-agent."
-                return 0 ;;
-              *)
-                echo "Invalid input. Please answer y or n." ;;
-            esac
-          done
-        fi
-<<<<<<< HEAD
-=======
-        # Ensure the path to the disk image is correct
-        disk_image_path="$storage/images/$vmid/$disk"
->>>>>>> parent of 4e5a99c (Update dev.sh)
-
-        if [ -f "$disk_image_path" ]; then
-          if virt-customize -a "$disk_image_path" --install qemu-guest-agent; then
-            echo "qemu-guest-agent has been successfully installed in the image."
-          else
-            echo "Failed to install qemu-guest-agent."
-            exit 1
-          fi
-        else
-          echo "Disk image not found at $disk_image_path."
-          exit 1
-        fi
-        break ;;
-      n|N)
-        echo "Continuing without installing qemu-guest-agent."
-        break ;;
-      *)
-        echo "Invalid input. Please answer y or n." ;;
-    esac
-  done
-}
-
+# Function to check whether the user wants to continue
 want_to_continue() {
   read -rp "Do you want to continue and make another OS template? [y/N] " choice
   case "$choice" in
-    y|Y ) ;;
+    y|Y ) return 0 ;;
     * ) echo "Exiting script."; exit 0 ;;
   esac
 }
@@ -177,8 +114,6 @@ while true; do
   select_os
   specify_storage
   specify_vmid
-  if setup_template; then
-    install_qemu_guest_agent
-  fi
+  setup_template
   want_to_continue
 done
