@@ -74,32 +74,34 @@ specify_vmid() {
 setup_template() {
   image_url="${os_images[$os]}"
   echo "Downloading the OS image from $image_url..."
-  wget -O /var/lib/vz/template/qcow2/"$os_name".qcow2 "$image_url" --quiet --show-progress
+  cd /var/tmp || exit
+  wget -O image.qcow2 "$image_url" --quiet --show-progress
 
   echo "Creating the VM as '$os_name'..."
   qm create "$vmid" --name "$os_name" --memory 2048 --net0 virtio,bridge=vmbr0
 
   echo "Importing the disk image..."
-  disk_import=$(qm importdisk "$vmid" /var/lib/vz/template/qcow2/"$os_name".qcow2 "$storage" --format qcow2)
-  disk=$(echo "$disk_import" | grep 'Successfully' | awk '{ print $NF }')
-  
-  if [[ -n "$disk" ]]; then
-    echo "Disk image imported as $storage:$disk"
+  disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
+  disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
+  disk_path="${disk#*:}"
+
+  if [[ -n "$disk_path" ]]; then
+    echo "Disk image imported as $disk_path"
 
     echo "Configuring VM to use the imported disk..."
-    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$storage:$disk"
+    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
     qm set "$vmid" --ide2 "$storage":cloudinit
     qm set "$vmid" --boot c --bootdisk scsi0
-    qm set "$vmid" --serial0 socket --vga serial0
+    qm set "$vmid" --serial0 socket
     qm template "$vmid"
 
     echo "New template created for $os with VMID $vmid."
-    
+
     echo "Deleting the downloaded image to save space..."
-    rm -f /var/lib/vz/template/qcow2/"$os_name".qcow2
+    rm -f /var/tmp/image.qcow2
   else
     echo "Failed to import the disk image."
-    exit 1
+    return 1
   fi
 }
 
