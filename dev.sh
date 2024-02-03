@@ -117,6 +117,45 @@ setup_template() {
   done
   
 while true; do
+    read -rp "Do you want to enable ssh access in the VM image? (If default is no) [y/N] " install_qga
+    case "$install_qga" in
+      y|Y)
+        if ! command -v virt-customize &>/dev/null; then
+          while true; do
+            read -rp "virt-customize is required but not installed. Install now? [y/N] " install_vc
+            case "$install_vc" in
+              y|Y)
+                apt-get update && apt-get install -y libguestfs-tools
+                if [ $? -ne 0 ]; then
+                  echo "Failed to install libguestfs-tools. Please manually install the package and try again."
+                  exit 1
+                fi
+                break ;;
+              n|N)
+                echo "Skipping the enabling ssh access."
+                return 0 ;;
+              *)
+                echo "Invalid input. Please answer y or n." ;;
+            esac
+          done
+        fi
+
+        if virt-customize -a "/var/tmp/image.qcow2" --edit '/etc/ssh/sshd_config:s/^#PasswordAuthentication no/PasswordAuthentication yes/'; then
+          echo "PasswordAuthentication has been successfully allowed in the image."
+        else
+          echo "Failed to enable ssh access."
+          exit 1
+        fi
+        break ;;
+      n|N)
+        echo "Continuing without enabling ssh access"
+        break ;;
+      *)
+        echo "Invalid input. Please answer y or n." ;;
+    esac
+  done
+
+  while true; do
     read -rp "Do you want to allow PasswordAuthentication in the VM image? (If default is no) [y/N] " install_qga
     case "$install_qga" in
       y|Y)
@@ -141,7 +180,7 @@ while true; do
         fi
 
         if virt-customize -a "/var/tmp/image.qcow2" --edit '/etc/ssh/sshd_config:s/^#PasswordAuthentication no/PasswordAuthentication yes/'; then
-          echo "PasswordAuthentication has been successfully installed in the image."
+          echo "PasswordAuthentication has been successfully allowed in the image."
         else
           echo "Failed to setup SSH PasswordAuthentication."
           exit 1
