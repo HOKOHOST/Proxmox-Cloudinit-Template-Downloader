@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proxmox Cloud-init Template Downloader</title>
+<style>
+  body {
+    color: #f0f0f0;
+    background-color: #121212;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+  }
+  a {
+    color: #29b6f6;
+  }
+  h1, h2 {
+    margin-bottom: .3em;
+  }
+  .command {
+    display: block;
+    background-color: #333;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background-color .3s;
+  }
+  .command:hover {
+    background-color: #444;
+  }
+  @media (max-width: 600px) {
+    h1 {
+      font-size: 24px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>osdl.sh</h1>
+</header>
+
+<main>
+  <h2>Proxmox Cloud-init Template Downloader</h2>
+  <p>This bash script facilitates the downloading and setup of Cloud-init OS templates for Proxmox Virtual Environment (PVE).</p>
+  <p>The script supports a predefined list of cloud-init enabled OS images, which currently includes:</p>
+  <ul>
+    <li>Debian 10 (EOL - No Support)</li>
+    <li>Debian 11</li>
+    <li>Debian 12</li>
+    <li>Ubuntu Server 20.04</li>
+    <li>Ubuntu Server 22.04</li>
+    <li>Alma Linux 8</li>
+    <li>Alma Linux 9</li>
+  </ul>
+  <p>For more info, please visit <a href="https://github.com/HOKOHOST/Proxmox-Cloudinit-Template-Downloader" target="_blank">GitHub</a>.</p>
+  
+  <h2>Usage</h2>
+  
+  <div class="command" data-command="wget https://osdl.sh/osdl.sh">Downloading the script:<br>wget https://osdl.sh/osdl.sh</div>
+  <div class="command" data-command="chmod +x osdl.sh">Ensure the osdl.sh script is executable:<br>chmod +x osdl.sh</div>
+  <div class="command" data-command="./osdl.sh">Run the script as the root user (or with sudo privileges) on your Proxmox server:<br>./osdl.sh</div>
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const commands = document.querySelectorAll('.command');
+
+    commands.forEach(function(command) {
+      command.addEventListener('click', function(event) {
+        const text = event.currentTarget.getAttribute('data-command');
+        const el = document.createElement('textarea');
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        // You can show a confirm message if needed
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
