@@ -195,7 +195,7 @@ while true; do
   done
 
   echo "Creating the VM as '$os_name'..."
-  qm create "$vmid" --name "$os_name" --memory 2048 --net0 virtio,bridge=vmbr0
+  qm create "$vmid" --name "$os_name" --memory 2048 --agent 1 --net0 virtio,bridge=vmbr0
 
   echo "Importing the disk image..."
   disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
