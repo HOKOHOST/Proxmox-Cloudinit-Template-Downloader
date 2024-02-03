@@ -36,6 +36,7 @@ select_os() {
     if [ -n "$os" ]; then
       os_name=$(echo "$os" | tr ' ' '-') # Convert spaces to hyphens for VM name
       echo "You have selected: $os"
+      break
     else
       echo "Invalid selection. Please try again."
     fi
