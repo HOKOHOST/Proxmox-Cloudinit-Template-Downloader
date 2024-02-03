@@ -48,10 +48,8 @@ specify_storage() {
     read -rp "Enter the target storage (e.g., local-lvm): " storage
     if [ -z "$storage" ]; then
       echo "You must input a storage to continue."
-      continue
-    elif ! pvesm status | cut -d ' ' -f1 | grep -qx "$storage"; then
+    elif ! pvesm list "$storage" &>/dev/null; then
       echo "The specified storage does not exist. Please try again."
-      continue
     else
       echo "Selected storage: $storage"
       break
@@ -64,10 +62,8 @@ specify_vmid() {
     read -rp "Enter the VMID you want to assign (e.g., 1000): " vmid
     if [ -z "$vmid" ]; then
       echo "You must input a VMID to continue."
-      continue
     elif qm status "$vmid" &>/dev/null; then
       echo "The VMID $vmid is already in use. Please enter another one."
-      continue
     else
       echo "Selected VMID: $vmid"
       break
@@ -78,31 +74,29 @@ specify_vmid() {
 setup_template() {
   image_url="${os_images[$os]}"
   echo "Downloading the OS image from $image_url..."
-  cd /var/tmp || exit
-  wget -O image.qcow2 "$image_url" --quiet --show-progress
+  wget -O /var/lib/vz/template/qcow2/"$os_name".qcow2 "$image_url" --quiet --show-progress
 
   echo "Creating the VM as '$os_name'..."
   qm create "$vmid" --name "$os_name" --memory 2048 --net0 virtio,bridge=vmbr0
 
   echo "Importing the disk image..."
-  disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
-  disk=$(echo "$disk_import" | grep 'Successfully imported disk image' | cut -d ' ' -f5)
-  disk_path="$storage:$disk"
-
-  if [[ -n "$disk_path" ]]; then
-    echo "Disk image imported as $disk_path"
+  disk_import=$(qm importdisk "$vmid" /var/lib/vz/template/qcow2/"$os_name".qcow2 "$storage" --format qcow2)
+  disk=$(echo "$disk_import" | grep 'Successfully' | awk '{ print $NF }')
+  
+  if [[ -n "$disk" ]]; then
+    echo "Disk image imported as $storage:$disk"
 
     echo "Configuring VM to use the imported disk..."
-    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
+    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$storage:$disk"
     qm set "$vmid" --ide2 "$storage":cloudinit
     qm set "$vmid" --boot c --bootdisk scsi0
-    qm set "$vmid" --serial0 socket
+    qm set "$vmid" --serial0 socket --vga serial0
     qm template "$vmid"
 
     echo "New template created for $os with VMID $vmid."
     
     echo "Deleting the downloaded image to save space..."
-    rm -f /var/tmp/image.qcow2
+    rm -f /var/lib/vz/template/qcow2/"$os_name".qcow2
   else
     echo "Failed to import the disk image."
     exit 1
@@ -149,7 +143,8 @@ while true; do
   select_os
   specify_storage
   specify_vmid
-  setup_template
-  install_qemu_guest_agent
+  if setup_template; then
+    install_qemu_guest_agent
+  fi
   want_to_continue
 done
