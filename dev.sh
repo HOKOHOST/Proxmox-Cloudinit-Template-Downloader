@@ -106,30 +106,42 @@ setup_template() {
 }
 
 install_qemu_guest_agent() {
-  read -rp "Do you want to install qemu-guest-agent in the VM image? [y/N] " install_qga
-  if [[ "$install_qga" =~ ^[yY]$ ]]; then
-    if ! command -v virt-customize &>/dev/null; then
-      echo "virt-customize is not installed. It is required to install qemu-guest-agent."
-      read -rp "Would you like to install virt-customize? [y/N] " install_vc
-      if [[ "$install_vc" =~ ^[yY]$ ]]; then
-        apt-get update && apt-get install -y libguestfs-tools
-        if [ $? -ne 0 ]; then
-          echo "Failed to install libguestfs-tools. Please manually install the package and try again."
-          return 1
+  while true; do
+    read -rp "Do you want to install qemu-guest-agent in the VM image? [y/N] " install_qga
+    case "$install_qga" in
+      y|Y)
+        if ! command -v virt-customize &>/dev/null; then
+          while true; do
+            read -rp "virt-customize is required but not installed. Install now? [y/N] " install_vc
+            case "$install_vc" in
+              y|Y)
+                apt-get update && apt-get install -y libguestfs-tools
+                if [ $? -ne 0 ]; then
+                  echo "Failed to install libguestfs-tools. Please manually install the package and try again."
+                  exit 1
+                fi
+                break;;
+              n|N)
+                echo "Skipping the installation of qemu-guest-agent."
+                return 0;;
+              *)
+                echo "Invalid input. Please answer y or n.";;
+            esac
+          done
         fi
-      else
-        echo "Skipping the installation of qemu-guest-agent."
-        return 0
-      fi
-    fi
-    virt-customize -a "/var/lib/vz/images/$vmid/disk-0.qcow2" --install qemu-guest-agent
-    if [ $? -ne 0 ]; then
-      echo "Failed to install qemu-guest-agent."
-      exit 1
-    fi
-  else
-    echo "Continuing without installing qemu-guest-agent."
-  fi
+        virt-customize -a "/var/lib/vz/images/$vmid/disk-0.qcow2" --install qemu-guest-agent
+        if [ $? -ne 0 ]; then
+          echo "Failed to install qemu-guest-agent."
+          exit 1
+        fi
+        break;;
+      n|N)
+        echo "Continuing without installing qemu-guest-agent."
+        break;;
+      *)
+        echo "Invalid input. Please answer y or n.";;
+    esac
+  done
 }
 
 want_to_continue() {
