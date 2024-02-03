@@ -86,14 +86,14 @@ setup_template() {
 
   echo "Importing the disk image..."
   disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
-  disk=$(echo "$disk_import" | grep 'Successfully imported disk image' | cut -d ':' -f2)
-  disk_path="${disk#* }"
+  disk=$(echo "$disk_import" | grep 'Successfully imported disk image' | cut -d ' ' -f5)
+  disk_path="$storage:$disk"
 
   if [[ -n "$disk_path" ]]; then
     echo "Disk image imported as $disk_path"
 
     echo "Configuring VM to use the imported disk..."
-    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$storage:$disk_path"
+    qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
     qm set "$vmid" --ide2 "$storage":cloudinit
     qm set "$vmid" --boot c --bootdisk scsi0
     qm set "$vmid" --serial0 socket
@@ -105,7 +105,7 @@ setup_template() {
     rm -f /var/tmp/image.qcow2
   else
     echo "Failed to import the disk image."
-    return 1
+    exit 1
   fi
 }
 
@@ -129,7 +129,7 @@ install_qemu_guest_agent() {
     virt-customize -a "/var/lib/vz/images/$vmid/disk-0.qcow2" --install qemu-guest-agent
     if [ $? -ne 0 ]; then
       echo "Failed to install qemu-guest-agent."
-      return 1
+      exit 1
     fi
   else
     echo "Continuing without installing qemu-guest-agent."
@@ -149,8 +149,7 @@ while true; do
   select_os
   specify_storage
   specify_vmid
-  if setup_template; then
-    install_qemu_guest_agent
-  fi
+  setup_template
+  install_qemu_guest_agent
   want_to_continue
 done
