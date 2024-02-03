@@ -120,26 +120,30 @@ install_qemu_guest_agent() {
                   echo "Failed to install libguestfs-tools. Please manually install the package and try again."
                   exit 1
                 fi
-                break;;
+                break ;;
               n|N)
                 echo "Skipping the installation of qemu-guest-agent."
-                return 0;;
+                return 0 ;;
               *)
-                echo "Invalid input. Please answer y or n.";;
+                echo "Invalid input. Please answer y or n." ;;
             esac
           done
         fi
-        virt-customize -a "/var/lib/vz/images/$vmid/disk-0.qcow2" --install qemu-guest-agent
-        if [ $? -ne 0 ]; then
+        # Ensure the path to the disk image is correct
+        disk_image_path="/var/lib/vz/images/$vmid/$disk"
+
+        if virt-customize -a "$disk_image_path" --install qemu-guest-agent; then
+          echo "qemu-guest-agent has been successfully installed in the image."
+        else
           echo "Failed to install qemu-guest-agent."
           exit 1
         fi
-        break;;
+        break ;;
       n|N)
         echo "Continuing without installing qemu-guest-agent."
-        break;;
+        break ;;
       *)
-        echo "Invalid input. Please answer y or n.";;
+        echo "Invalid input. Please answer y or n." ;;
     esac
   done
 }
