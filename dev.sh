@@ -101,7 +101,7 @@ setup_template() {
           done
         fi
 
-        if virt-customize -a "/var/tmp/image.qcow2"  --run-command 'apt-get update && apt-get install -y qemu-guest-agent' --run-command 'systemctl enable qemu-guest-agent.service'; then
+        if virt-customize -a "/var/tmp/image.qcow2"  --run-command 'apt-get update -y && apt-get upgrade -y && apt-get install -y qemu-guest-agent && dnf update -y && dnf install -y qemu-guest-agent' --run-command 'systemctl enable qemu-guest-agent.service'; then
           echo "qemu-guest-agent has been successfully installed in the image."
         else
           echo "Failed to install qemu-guest-agent."
@@ -140,8 +140,12 @@ while true; do
           done
         fi
 
-        if virt-customize -a "/var/tmp/image.qcow2" --edit '/etc/ssh/sshd_config:s/^#PasswordAuthentication no/PasswordAuthentication yes/'; then
-          echo "ssh access has been successfully allowed in the image."
+if virt-customize -a "/var/tmp/image.qcow2" --run-command "sed -i -e 's/^#Port 22/Port 22/' \
+       -e 's/^#AddressFamily any/AddressFamily any/' \
+       -e 's/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/' \
+       -e 's/^#ListenAddress ::/ListenAddress ::/' /etc/ssh/sshd_config && systemctl restart sshd"; then
+    echo "ssh access has been successfully allowed in the image."
+fi
         else
           echo "Failed to enable ssh access."
           exit 1
@@ -179,12 +183,15 @@ while true; do
           done
         fi
 
-        if virt-customize -a "/var/tmp/image.qcow2" --edit '/etc/ssh/sshd_config:s/^#PasswordAuthentication no/PasswordAuthentication yes/'; then
-          echo "PasswordAuthentication has been successfully allowed in the image."
-        else
-          echo "Failed to setup SSH PasswordAuthentication."
-          exit 1
-        fi
+if virt-customize -a "/var/tmp/image.qcow2" --run-command "sed -i '/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config" --run-command "sed -i '/^PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config"; then
+  if ! virt-customize -a "/var/tmp/image.qcow2" --run-command "grep -q '^PasswordAuthentication yes' /etc/ssh/sshd_config"; then
+    virt-customize -a "/var/tmp/image.qcow2" --run-command "echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config"
+  fi
+  echo "PasswordAuthentication has been successfully allowed in the image."
+else
+  echo "Failed to setup SSH PasswordAuthentication."
+  exit 1
+fi
         break ;;
       n|N)
         echo "Continuing without setup SSH PasswordAuthentication"
