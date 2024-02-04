@@ -13,6 +13,40 @@ The script supports a predefined list of cloud-init enabled OS images, which cur
 - Alma Linux 8
 - Alma Linux 9
 
+## Beta Feature: osdl.sh/osdlt.sh
+
+We are excited to announce the beta release of the `osdl.sh/osdlt.sh` script, which provides extended functionality for Proxmox installations. With this script, you can:
+
+- Install the QEMU Guest Agent on your virtual machines.
+- Enable SSH access for easy management.
+- Configure SSH to permit password authentication.
+
+This beta feature is still under active development, and we would appreciate any feedback on your experience with `osdlt.sh`. Please submit any issues you encounter or enhancements you suggest.
+
+### How to Use the Beta Script
+
+To leverage the enhancements in the beta testing script, perform the following steps:
+
+1. Download the testing script:
+
+    ```bash
+    wget osdl.sh/osdlt.sh
+    ```
+
+2. Make sure the `osdlt.sh` is executable:
+
+    ```bash
+    chmod +x osdlt.sh
+    ```
+
+3. Execute the script with root privileges:
+
+    ```bash
+    ./osdlt.sh
+    ```
+
+Your input on this beta feature will help us improve its performance and reliability for future releases.
+
 ## Prerequisites
 
 - A Proxmox VE installation.
@@ -59,7 +93,7 @@ Your contributions are most welcome. Feel free to make improvements by submittin
 
 ## Support
 
-This script is provided by [HOKOHOST](https://hokohost.com/scripts). If you find it valuable and wish to support further development or say thanks, please consider making a donation at [HOKOHOST Donate](https://hokohost.com/donate). Your support is greatly appreciated.
+This script is provided by [HOKOHOST](https://hokohost.com/). If you find it valuable and wish to support further development or say thanks, please consider making a donation using [Stripe](https://donate.stripe.com/6oE00Y8fUe6V6uQ002). Your support is greatly appreciated.
 
 ## License
 
@@ -72,4 +106,3 @@ This script is provided 'as-is', without any warranty or guarantee of any kind. 
 ## Author Information
 
 This script is proudly presented to you by [HOKOHOST](https://hokohost.com). Stay updated with the latest versions by visiting our website.
-
