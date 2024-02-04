@@ -101,14 +101,14 @@ while true; do
                 done
             fi
             
-            if virt-customize -a "/var/tmp/image.qcow2" \
-              --install qemu-guest-agent \
-              --enable qemu-guest-agent.service; then
-                echo "qemu-guest-agent has been successfully installed and enabled in the image."
-            else
-                echo "Failed to install and enable qemu-guest-agent."
-                exit 1
-            fi
+if virt-customize -a "/var/tmp/image.qcow2" \
+  --install qemu-guest-agent \
+  --run-command 'ln -s /lib/systemd/system/qemu-guest-agent.service /etc/systemd/system/multi-user.target.wants/'; then
+    echo "qemu-guest-agent has been successfully installed and enabled in the image."
+else
+    echo "Failed to install and enable qemu-guest-agent."
+    exit 1
+fi
             break ;;
         n|N)
             echo "Continuing without installing qemu-guest-agent."
