@@ -11,8 +11,8 @@ The script supports a predefined list of cloud-init enabled OS images, which cur
 - Ubuntu Server 20.04
 - Ubuntu Server 22.04
 - Alma Linux 8
-- Alma Linux 9
-- CentOS 7 (No Support)
+- Alma Linux 9 *Not working on beta
+- CentOS 7 (No Support) *Not working on beta
 - CentOS 8 Stream (No Support)
 - CentOS 9 Stream (No Support)
 
