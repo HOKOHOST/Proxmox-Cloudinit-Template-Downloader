@@ -77,44 +77,47 @@ setup_template() {
   cd /var/tmp || exit
   wget -O image.qcow2 "$image_url" --quiet --show-progress
 
-  while true; do
+while true; do
     read -rp "Do you want to install qemu-guest-agent in the VM image? [y/N] " install_qga
     case "$install_qga" in
-      y|Y)
-        if ! command -v virt-customize &>/dev/null; then
-          while true; do
-            read -rp "virt-customize is required but not installed. Install now? [y/N] " install_vc
-            case "$install_vc" in
-              y|Y)
-                apt-get update && apt-get install -y libguestfs-tools
-                if [ $? -ne 0 ]; then
-                  echo "Failed to install libguestfs-tools. Please manually install the package and try again."
-                  exit 1
-                fi
-                break ;;
-              n|N)
-                echo "Skipping the installation of qemu-guest-agent."
-                return 0 ;;
-              *)
-                echo "Invalid input. Please answer y or n." ;;
-            esac
-          done
-        fi
-
-        if virt-customize -a "/var/tmp/image.qcow2"  --run-command 'apt-get update -y && apt-get upgrade -y && apt-get install -y qemu-guest-agent && dnf update -y && dnf install -y qemu-guest-agent' --run-command 'systemctl enable qemu-guest-agent.service'; then
-          echo "qemu-guest-agent has been successfully installed in the image."
-        else
-          echo "Failed to install qemu-guest-agent."
-          exit 1
-        fi
-        break ;;
-      n|N)
-        echo "Continuing without installing qemu-guest-agent."
-        break ;;
-      *)
-        echo "Invalid input. Please answer y or n." ;;
+        y|Y)
+            if ! command -v virt-customize &>/dev/null; then
+                while true; do
+                    read -rp "virt-customize is required but not installed. Install now? [y/N] " install_vc
+                    case "$install_vc" in
+                        y|Y)
+                            apt-get update && apt-get install -y libguestfs-tools
+                            if [ $? -ne 0 ]; then
+                                echo "Failed to install libguestfs-tools. Please manually install the package and try again."
+                                exit 1
+                            fi
+                            break ;;
+                        n|N)
+                            echo "Skipping the installation of qemu-guest-agent."
+                            return 0 ;;
+                        *)
+                            echo "Invalid input. Please answer y or n." ;;
+                    esac
+                done
+            fi
+            
+            if virt-customize -a "/var/tmp/image.qcow2" \
+              --install qemu-guest-agent \
+              --enable qemu-guest-agent.service; then
+                echo "qemu-guest-agent has been successfully installed and enabled in the image."
+            else
+                echo "Failed to install and enable qemu-guest-agent."
+                exit 1
+            fi
+            break ;;
+        n|N)
+            echo "Continuing without installing qemu-guest-agent."
+            break ;;
+        *)
+            echo "Invalid input. Please answer y or n." ;;
     esac
-  done
+done
+
   
 while true; do
     read -rp "Do you want to enable ssh access in the VM image? (If default is no) [y/N] " install_qga
@@ -140,27 +143,26 @@ while true; do
           done
         fi
 
-if virt-customize -a "/var/tmp/image.qcow2" --run-command "sed -i -e 's/^#Port 22/Port 22/' \
-       -e 's/^#AddressFamily any/AddressFamily any/' \
-       -e 's/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/' \
-       -e 's/^#ListenAddress ::/ListenAddress ::/' /etc/ssh/sshd_config && systemctl restart sshd"; then
-    echo "ssh access has been successfully allowed in the image."
-fi
+        if virt-customize -a "/var/tmp/image.qcow2" --run-command "sed -i -e 's/^#Port 22/Port 22/' \
+           -e 's/^#AddressFamily any/AddressFamily any/' \
+           -e 's/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/' \
+           -e 's/^#ListenAddress ::/ListenAddress ::/' /etc/ssh/sshd_config"; then
+          echo "SSH access has been successfully allowed in the image."
         else
-          echo "Failed to enable ssh access."
+          echo "Failed to enable SSH access."
           exit 1
         fi
         break ;;
       n|N)
-        echo "Continuing without enabling ssh access"
+        echo "Continuing without enabling SSH access."
         break ;;
       *)
         echo "Invalid input. Please answer y or n." ;;
     esac
-  done
+done
 
-  while true; do
-    read -rp "Do you want to allow PasswordAuthentication in the VM image? (If default is no) [y/N] " install_qga
+while true; do
+    read -rp "Do you want to allow PasswordAuthentication in the VM image? (If the default is no) [y/N] " install_qga
     case "$install_qga" in
       y|Y)
         if ! command -v virt-customize &>/dev/null; then
@@ -183,18 +185,15 @@ fi
           done
         fi
 
-if virt-customize -a "/var/tmp/image.qcow2" --run-command "sed -i '/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config" --run-command "sed -i '/^PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config"; then
-  if ! virt-customize -a "/var/tmp/image.qcow2" --run-command "grep -q '^PasswordAuthentication yes' /etc/ssh/sshd_config"; then
-    virt-customize -a "/var/tmp/image.qcow2" --run-command "echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config"
-  fi
-  echo "PasswordAuthentication has been successfully allowed in the image."
-else
-  echo "Failed to setup SSH PasswordAuthentication."
-  exit 1
-fi
+        if virt-customize -a "/var/tmp/image.qcow2" --run-command "sed -i '/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config" --run-command "sed -i '/^PasswordAuthentication no/c\PasswordAuthentication yes' /etc/ssh/sshd_config"; then
+          echo "PasswordAuthentication has been successfully allowed in the image."
+        else
+          echo "Failed to set up SSH PasswordAuthentication."
+          exit 1
+        fi
         break ;;
       n|N)
-        echo "Continuing without setup SSH PasswordAuthentication"
+        echo "Continuing without setting up SSH PasswordAuthentication."
         break ;;
       *)
         echo "Invalid input. Please answer y or n." ;;
