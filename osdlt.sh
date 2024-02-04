@@ -17,6 +17,9 @@ os_images_ordered=(
   "Ubuntu Server 22.04"
   "Alma Linux 8"
   "Alma Linux 9"
+  "CentOS 7 - No Support"
+  "CentOS 8 Stream - No Support"
+  "CentOS 9 Stream - No Support"
 )
 
 declare -A os_images=(
@@ -27,6 +30,9 @@ declare -A os_images=(
   ["Ubuntu Server 22.04"]="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
   ["Alma Linux 8"]="https://repo.almalinux.org/almalinux/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2"
   ["Alma Linux 9"]="https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
+  ["CentOS 7 - No Support"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-20150628_01.qcow2"
+  ["CentOS 8 Stream - No Support"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
+  ["CentOS 9 Stream - No Support"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
 )
 
 select_os() {
