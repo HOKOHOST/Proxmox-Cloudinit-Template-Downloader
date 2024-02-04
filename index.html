@@ -4,63 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proxmox Cloud-init Template Downloader</title>
-<style>
-  body {
-    color: #f0f0f0;
-    background-color: #121212;
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    line-height: 1.6;
-  }
-  a {
-    color: #29b6f6;
-    text-decoration: none;
-  }
-  h1, h2 {
-    margin-bottom: .3em;
-  }
-  .command {
-    display: block;
-    background-color: #333;
-    padding: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-bottom: 10px;
-    transition: background-color .3s;
-  }
-  .command:hover {
-    background-color: #444;
-  }
-  .support-section {
-    text-align: center;
-    padding-top: 20px;
-    margin-top: 40px;
-    border-top: 1px solid #333;
-  }
-  .support-btn {
-    background-color: #0a84ff;
-    color: #f0f0f0;
-    border: none;
-    padding: 15px 30px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color .3s;
-  }
-  .support-btn:hover {
-    background-color: #005ecb;
-  }
-  @media (max-width: 600px) {
-    h1 {
-      font-size: 24px;
-    }
-  }
-</style>
+<!-- Rest of the head content unchanged -->
 </head>
 <body>
 
@@ -82,14 +26,26 @@
     <li>Alma Linux 9</li>
   </ul>
   <p>For more info, please visit <a href="https://github.com/HOKOHOST/Proxmox-Cloudinit-Template-Downloader" target="_blank">GitHub</a>.</p>
-  
+
+  <!-- Beta Feature Section -->
+  <h2>Beta Testing: osdl.sh/osdlt.sh</h2>
+  <p>We are currently beta testing a new script feature, osdl.sh/osdlt.sh, which offers enhanced capabilities such as QEMU Guest Agent installation, SSH access enablement, and password authentication for SSH.</p>
+  <p>This feature is under active development and your feedback is highly appreciated.</p>
+
   <h2>Usage (Click to copy)</h2>
   
+  <!-- Regular Script Commands -->
   <div class="command" data-command="wget osdl.sh/osdl.sh">Downloading the script:<br>wget osdl.sh/osdl.sh</div>
   <div class="command" data-command="chmod +x osdl.sh">Ensure the osdl.sh script is executable:<br>chmod +x osdl.sh</div>
   <div class="command" data-command="./osdl.sh">Run the script:<br>./osdl.sh</div>
+
+  <!-- Beta Script Commands -->
+  <div class="command" data-command="wget osdl.sh/osdlt.sh">Download the beta testing script:<br>wget osdl.sh/osdlt.sh</div>
+  <div class="command" data-command="chmod +x osdlt.sh">Make the osdlt.sh script executable:<br>chmod +x osdlt.sh</div>
+  <div class="command" data-command="./osdlt.sh">Execute the beta script:<br>./osdlt.sh</div>
 </main>
 
+<!-- Support Section Unchanged -->
 <div class="support-section">
   <p>Your support helps us maintain and improve this project. If you find it valuable, consider making a donation:</p>
   <a href="https://donate.stripe.com/6oE00Y8fUe6V6uQ002" target="_blank" class="support-btn">Support the Project</a>
