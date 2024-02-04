@@ -65,11 +65,11 @@
 <body>
 
 <header>
-  <h1>osdl.sh</h1>
+  <h1>Proxmox Cloud-init Template Downloader</h1>
 </header>
 
 <main>
-  <h2>Proxmox Cloud-init Template Downloader</h2>
+  <h2>About</h2>
   <p>This bash script facilitates the downloading and setup of Cloud-init OS templates for Proxmox Virtual Environment (PVE).</p>
   <p>The script supports a predefined list of cloud-init enabled OS images, which currently includes:</p>
   <ul>
@@ -82,18 +82,29 @@
     <li>Alma Linux 9</li>
   </ul>
   <p>For more info, please visit <a href="https://github.com/HOKOHOST/Proxmox-Cloudinit-Template-Downloader" target="_blank">GitHub</a>.</p>
+  
+  <!-- Standard Usage -->
+  <h2>Standard Usage (Click to copy)</h2>
+  <div class="command" data-command="wget osdl.sh/osdl.sh">Download the script:<br>wget osdl.sh/osdl.sh</div>
+  <div class="command" data-command="chmod +x osdl.sh">Make the script executable:<br>chmod +x osdl.sh</div>
+  <div class="command" data-command="./osdl.sh">Run the script:<br>./osdl.sh</div>
 
-  <h2>Beta Testing: osdl.sh/osdlt.sh</h2>
-  <p>We are currently beta testing a new script feature, osdl.sh/osdlt.sh, which offers enhanced capabilities such as QEMU Guest Agent installation, SSH access enablement, and password authentication for SSH.</p>
+  <!-- Beta Feature Section -->
+  <h2>Beta Feature: osdl.sh/osdlt.sh</h2>
+  <p>We are currently beta testing a new script feature, osdl.sh/osdlt.sh, which offers the following enhancements:</p>
+  <ul>
+    <li>Automated QEMU Guest Agent installation</li>
+    <li>Enabling of SSH access for VMs</li>
+    <li>Configuration of SSH to permit password authentication</li>
+  </ul>
   <p>This feature is under active development and your feedback is highly appreciated.</p>
   
-  <h2>Usage (Click to copy)</h2>
-  <div class="command" data-command="wget osdl.sh/osdl.sh">Downloading the script:<br>wget osdl.sh/osdl.sh</div>
-  <div class="command" data-command="chmod +x osdl.sh">Ensure the osdl.sh script is executable:<br>chmod +x osdl.sh</div>
-  <div class="command" data-command="./osdl.sh">Run the script:<br>./osdl.sh</div>
-  <div class="command" data-command="wget osdl.sh/osdlt.sh">Download the beta testing script:<br>wget osdl.sh/osdlt.sh</div>
-  <div class="command" data-command="chmod +x osdlt.sh">Make the osdlt.sh script executable:<br>chmod +x osdlt.sh</div>
+  <!-- Beta Usage -->
+  <h2>Beta Usage (Click to copy)</h2>
+  <div class="command" data-command="wget osdl.sh/osdlt.sh">Download the beta script:<br>wget osdl.sh/osdlt.sh</div>
+  <div class="command" data-command="chmod +x osdlt.sh">Make the beta script executable:<br>chmod +x osdlt.sh</div>
   <div class="command" data-command="./osdlt.sh">Execute the beta script:<br>./osdlt.sh</div>
+
 </main>
 
 <div class="support-section">
