@@ -12,6 +12,9 @@ The script supports a predefined list of cloud-init enabled OS images, which cur
 - Ubuntu Server 22.04
 - Alma Linux 8
 - Alma Linux 9
+- CentOS 7 (No Support) *Beta Script Only
+- CentOS 8 Stream (No Support) *Beta Script Only
+- CentOS 9 Stream (No Support) *Beta Script Only
 
 ## Beta Feature: osdl.sh/osdlt.sh
 
