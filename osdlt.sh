@@ -20,6 +20,7 @@ os_images_ordered=(
   "CentOS 7 - No Support"
   "CentOS 8 Stream - No Support"
   "CentOS 9 Stream - No Support"
+  "CloudLinux 8.8 with DirectAdmin"
 )
 
 declare -A os_images=(
@@ -33,6 +34,7 @@ declare -A os_images=(
   ["CentOS 7 - No Support"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-20150628_01.qcow2"
   ["CentOS 8 Stream - No Support"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
   ["CentOS 9 Stream - No Support"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
+  ["CloudLinux 8.8 with DirectAdmin"]="https://download.cloudlinux.com/cloudlinux/images/cloudlinux-8.8-x86_64-directadmin-openstack-20230622.qcow2"
 )
 
 select_os() {
