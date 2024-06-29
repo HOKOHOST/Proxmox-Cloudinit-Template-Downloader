@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.7.0"
+SCRIPT_VERSION="1.8.0"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -340,8 +340,10 @@ setup_template() {
         esac
     done
 
-    echo "Creating the VM as '$os_choice'..."
-    qm create "$vmid" --name "$os_choice" --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0
+    # Create a valid VM name
+    local vm_name=$(echo "$os_choice" | sed 's/ (EOL)//; s/ /-/g')
+    echo "Creating the VM as '$vm_name'..."
+    qm create "$vmid" --name "$vm_name" --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0
 
     echo "Importing the disk image..."
     local disk_import
