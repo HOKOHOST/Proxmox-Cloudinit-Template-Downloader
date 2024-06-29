@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.4.0"
+SCRIPT_VERSION="1.5.0"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -182,12 +182,23 @@ select_os() {
     for distro in "${distros[@]}"; do
         echo
         echo "$distro:"
+        # Collect all versions for this distro
+        local versions=()
         for os in "${!os_images[@]}"; do
             if [[ $os == $distro* ]]; then
-                printf "%3d) %s\n" $count "$os"
-                options+=("$os")
-                ((count++))
+                version=$(echo "$os" | cut -d' ' -f2 | sed 's/ (EOL)//')
+                versions+=("$version")
             fi
+        done
+        # Sort versions
+        IFS=$'\n' sorted_versions=($(sort -V <<<"${versions[*]}"))
+        unset IFS
+        # Print sorted versions
+        for version in "${sorted_versions[@]}"; do
+            full_os="$distro $version"
+            printf "%3d) %s\n" $count "$full_os"
+            options+=("$full_os")
+            ((count++))
         done
     done
     
@@ -195,7 +206,7 @@ select_os() {
         read -rp "Enter your choice (1-$((count-1))): " os_choice
         if [[ "$os_choice" =~ ^[0-9]+$ ]] && [ "$os_choice" -ge 1 ] && [ "$os_choice" -lt "$count" ]; then
             os_choice=${options[$((os_choice-1))]}
-            if [[ $os_choice == *"EOL"* ]]; then
+            if [[ "${os_images[$os_choice]}" == *"EOL"* ]]; then
                 echo "Warning: $os_choice is End of Life. It's not recommended for use due to potential security issues."
                 read -rp "Do you still want to continue? [y/N] " continue_choice
                 if [[ ! $continue_choice =~ ^[Yy]$ ]]; then
