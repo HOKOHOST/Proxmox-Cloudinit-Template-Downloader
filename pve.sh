@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.3.0"
+SCRIPT_VERSION="1.4.0"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -11,6 +11,9 @@ check_for_updates() {
         echo "Failed to check for updates. Please check your internet connection."
         return
     fi
+    # Remove any trailing newline characters
+    latest_version=$(echo "$latest_version" | tr -d '\n')
+    SCRIPT_VERSION=$(echo "$SCRIPT_VERSION" | tr -d '\n')
     if [ "$latest_version" != "$SCRIPT_VERSION" ]; then
         echo "A new version ($latest_version) is available. Current version is $SCRIPT_VERSION."
         read -rp "Do you want to update? [y/N] " update_choice
