@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.8.0"
+SCRIPT_VERSION="1.9.0"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -305,7 +305,19 @@ setup_template() {
     local image_url="${os_images[$os_choice]}"
     echo "Downloading the OS image for $os_choice from $image_url..."
     cd /var/tmp || exit
-    wget -O image.qcow2 "$image_url" --quiet --show-progress
+    
+    # Download with progress and error checking
+    if ! wget -O image.qcow2 "$image_url" --progress=bar:force:noscroll; then
+        echo "Failed to download the image. Please check your internet connection and try again."
+        return 1
+    fi
+
+    # Check if the downloaded file is empty
+    if [ ! -s image.qcow2 ]; then
+        echo "The downloaded image file is empty. Please try again or choose a different OS."
+        rm -f image.qcow2
+        return 1
+    fi
 
     install_package "libguestfs-tools"
 
@@ -368,6 +380,7 @@ setup_template() {
         rm -f /var/tmp/image.qcow2
     else
         echo "Failed to import the disk image."
+        rm -f /var/tmp/image.qcow2
         return 1
     fi
 }
