@@ -13,7 +13,7 @@ check_for_updates() {
     if [ -z "$script_content" ]; then
         echo "Failed to check for updates. Please check your internet connection."
         return
-    }
+    fi
 
     # Extract the version from the downloaded script
     latest_version=$(echo "$script_content" | grep "^SCRIPT_VERSION=" | cut -d'"' -f2)
@@ -25,7 +25,7 @@ check_for_updates() {
     if [ -z "$latest_version" ]; then
         echo "Failed to determine the latest version. Skipping update check."
         return
-    }
+    fi
 
     if [ "$latest_version" != "$current_version" ]; then
         echo "A new version ($latest_version) is available. Current version is $current_version."
