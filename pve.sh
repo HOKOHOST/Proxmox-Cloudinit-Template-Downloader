@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.2.0"
+SCRIPT_VERSION="1.3.0"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
