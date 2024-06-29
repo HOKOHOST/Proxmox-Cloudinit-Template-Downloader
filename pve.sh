@@ -5,20 +5,29 @@ SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
     echo "Checking for updates..."
+    local latest_version
     latest_version=$(curl -s "$SCRIPT_URL" | grep "SCRIPT_VERSION=" | cut -d'"' -f2)
-    if [ "$latest_version" != "$SCRIPT_VERSION" ] && [ -n "$latest_version" ]; then
+    if [ -z "$latest_version" ]; then
+        echo "Failed to check for updates. Please check your internet connection."
+        return
+    fi
+    if [ "$latest_version" != "$SCRIPT_VERSION" ]; then
         echo "A new version ($latest_version) is available. Current version is $SCRIPT_VERSION."
         read -rp "Do you want to update? [y/N] " update_choice
         if [[ $update_choice =~ ^[Yy]$ ]]; then
             echo "Updating script..."
-            curl -s "$SCRIPT_URL" -o "$0"
-            echo "Update complete. Please run the script again."
-            exit 0
+            if curl -s "$SCRIPT_URL" -o "$0"; then
+                echo "Update complete. Please run the script again."
+                exit 0
+            else
+                echo "Update failed. Please try again later or download manually from $SCRIPT_URL"
+            fi
         fi
     else
         echo "You are running the latest version ($SCRIPT_VERSION)."
     fi
 }
+
 
 show_welcome_message() {
     clear
