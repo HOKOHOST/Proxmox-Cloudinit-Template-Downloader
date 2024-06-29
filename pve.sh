@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.9.1"
+SCRIPT_VERSION="1.9.2"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -273,20 +273,26 @@ install_package() {
     local package=$1
     if ! dpkg -s "$package" >/dev/null 2>&1; then
         echo "$package is not installed."
+        echo "If you don't install $package, you won't be able to use the following functions:"
+        echo "  - Install qemu-guest-agent"
+        echo "  - Enable SSH access"
+        echo "  - Allow PasswordAuthentication"
+        echo "  - Enable root SSH login"
+        echo "These functions allow you to customize the OS image before creating the template."
         read -rp "Do you want to install $package? [y/N] " install_choice
         if [[ $install_choice =~ ^[Yy]$ ]]; then
             echo "Installing $package..."
             if ! apt-get update && apt-get install -y "$package"; then
-                echo "Failed to install $package. Some functions might be unavailable."
+                echo "Failed to install $package. Some functions will be unavailable."
                 return 1
             fi
         else
-            echo "Skipping installation of $package. Some functions might be unavailable."
+            echo "Skipping installation of $package. Some functions will be unavailable."
             return 1
         fi
     fi
     return 0
-}
+}	 
 
 customize_image() {
     local action=$1
@@ -309,51 +315,54 @@ setup_template() {
     echo "Downloading the OS image for $os_choice from $image_url..."
     cd /var/tmp || exit
     
-    # Download with progress and error checking
     if ! wget -O image.qcow2 "$image_url" --progress=bar:force:noscroll; then
         echo "Failed to download the image. Please check your internet connection and try again."
         return 1
     fi
 
-    # Check if the downloaded file is empty
     if [ ! -s image.qcow2 ]; then
         echo "The downloaded image file is empty. Please try again or choose a different OS."
         rm -f image.qcow2
         return 1
     fi
 
-    install_package "libguestfs-tools"
+    local libguestfs_installed=false
+    install_package "libguestfs-tools" && libguestfs_installed=true
 
-    local options=(
-        "Install qemu-guest-agent"
-        "Enable SSH access"
-        "Allow PasswordAuthentication"
-        "Enable root SSH login"
-    )
+    if $libguestfs_installed; then
+        local options=(
+            "Install qemu-guest-agent"
+            "Enable SSH access"
+            "Allow PasswordAuthentication"
+            "Enable root SSH login"
+        )
 
-    for option in "${options[@]}"; do
-        local command=""
-        case "$option" in
-            "Install qemu-guest-agent")
-                command="--install qemu-guest-agent --run-command 'systemctl enable qemu-guest-agent'"
-                ;;
-            "Enable SSH access")
-                command="--run-command \"sed -i -e 's/^#Port 22/Port 22/' -e 's/^#AddressFamily any/AddressFamily any/' -e 's/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/' -e 's/^#ListenAddress ::/ListenAddress ::/' /etc/ssh/sshd_config\""
-                ;;
-            "Allow PasswordAuthentication")
-                command="--run-command \"sed -i '/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config && sed -i '/^PasswordAuthentication no/c\PasswordAuthentication yes' /etc/ssh/sshd_config\""
-                ;;
-            "Enable root SSH login")
-                command="--run-command \"sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config\""
-                ;;
-        esac
+        for option in "${options[@]}"; do
+            local command=""
+            case "$option" in
+                "Install qemu-guest-agent")
+                    command="--install qemu-guest-agent --run-command 'systemctl enable qemu-guest-agent'"
+                    ;;
+                "Enable SSH access")
+                    command="--run-command \"sed -i -e 's/^#Port 22/Port 22/' -e 's/^#AddressFamily any/AddressFamily any/' -e 's/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/' -e 's/^#ListenAddress ::/ListenAddress ::/' /etc/ssh/sshd_config\""
+                    ;;
+                "Allow PasswordAuthentication")
+                    command="--run-command \"sed -i '/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config && sed -i '/^PasswordAuthentication no/c\PasswordAuthentication yes' /etc/ssh/sshd_config\""
+                    ;;
+                "Enable root SSH login")
+                    command="--run-command \"sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config\""
+                    ;;
+            esac
 
-        read -rp "Do you want to $option? [y/N] " choice
-        case "$choice" in
-            y|Y) customize_image "$option" "$command" ;;
-            *) echo "Skipping $option." ;;
-        esac
-    done
+            read -rp "Do you want to $option? [y/N] " choice
+            case "$choice" in
+                y|Y) customize_image "$option" "$command" ;;
+                *) echo "Skipping $option." ;;
+            esac
+        done
+    else
+        echo "Skipping image customization options due to missing libguestfs-tools."
+    fi
 
     # Create a valid VM name
     local vm_name=$(echo "$os_choice" | sed 's/ (EOL)//; s/ /-/g')
@@ -396,10 +405,13 @@ main() {
     read -n 1 -s -r
     echo
     select_mode
+
+    # Add some space before the closing message
+    echo
+    echo
+    echo
     echo "Thank you for using OSDL!"
     echo "Remember, CUHK LTD. offers enterprise-level Proxmox setup services."
     echo "Visit https://osdl.sh or contact info@cuhk.uk for more information."
     echo "Your support helps us continue improving. Consider a donation if you found this useful!"
 }
-
-main
