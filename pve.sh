@@ -297,7 +297,8 @@ setup_template() {
         esac
 
         read -rp "Do you want to $option? [y/N] " choice
-                  y|Y) customize_image "$option" "$command" ;;
+        case "$choice" in
+            y|Y) customize_image "$option" "$command" ;;
             *) echo "Skipping $option." ;;
         esac
     done
@@ -309,7 +310,8 @@ setup_template() {
     local disk_import
     disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
     local disk
-    disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -    local disk_path="${disk#*:}"
+    disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
+    local disk_path="${disk#*:}"
 
     if [[ -n "$disk_path" ]]; then
         echo "Disk image imported as $disk_path"
@@ -321,13 +323,16 @@ setup_template() {
         qm set "$vmid" --serial0 socket --vga serial0
         qm template "$vmid"
 
-        echo "New template cre
+        echo "New template created for $os_choice with VMID $vmid."
+
         echo "Deleting the downloaded image to save space..."
         rm -f /var/tmp/image.qcow2
     else
         echo "Failed to import the disk image."
-        fi
+        return 1
+    fi
 }
+
 
 main() {
     show_welcome_message
