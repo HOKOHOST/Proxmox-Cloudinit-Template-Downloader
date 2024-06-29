@@ -1,6 +1,9 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.9.2"
+echo "Script started"
+set -x
+
+SCRIPT_VERSION="1.9.3"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -397,13 +400,16 @@ setup_template() {
     fi
 }
 
-
 main() {
+    echo "Entering main function"
     show_welcome_message
+    echo "Welcome message shown"
     check_for_updates
+    echo "Update check completed"
     echo "Press any key to continue..."
     read -n 1 -s -r
     echo
+    echo "Selecting mode"
     select_mode
 
     # Add some space before the closing message
@@ -414,4 +420,8 @@ main() {
     echo "Remember, CUHK LTD. offers enterprise-level Proxmox setup services."
     echo "Visit https://osdl.sh or contact info@cuhk.uk for more information."
     echo "Your support helps us continue improving. Consider a donation if you found this useful!"
-}
+    echo "Main function compl}
+
+echo "Calling main function"
+main
+echo "Script completed"
