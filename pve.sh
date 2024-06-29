@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.6.0"
+SCRIPT_VERSION="1.7.0"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -76,18 +76,18 @@ EOF
 }
 
 declare -A os_images=(
-    ["Debian 9"]="https://cloud.debian.org/images/cloud/stretch/latest/debian-9-generic-amd64.qcow2"
-    ["Debian 10"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
+    ["Debian 9 (EOL)"]="https://cloud.debian.org/images/cloud/stretch/latest/debian-9-generic-amd64.qcow2"
+    ["Debian 10 (EOL)"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
     ["Debian 11"]="https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
     ["Debian 12"]="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
-    ["Ubuntu 18.04"]="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
-    ["Ubuntu 20.04"]="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
-    ["Ubuntu 22.04"]="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-    ["Ubuntu 24.04"]="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
-    ["CentOS 7"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2"
-    ["CentOS 8"]="https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
-    ["CentOS Stream 8"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
-    ["CentOS Stream 9"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
+    ["Ubuntu Server 18.04 (EOL)"]="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
+    ["Ubuntu Server 20.04"]="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
+    ["Ubuntu Server 22.04"]="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+    ["Ubuntu Server 24.04"]="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
+    ["CentOS 7 (EOL)"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2"
+    ["CentOS 8 (EOL)"]="https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
+    ["CentOS 8 Stream"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
+    ["CentOS 9 Stream"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
     ["Alma Linux 8"]="https://repo.almalinux.org/almalinux/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2"
     ["Alma Linux 9"]="https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
     ["Rocky Linux 8"]="https://download.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2"
@@ -166,19 +166,9 @@ bundle_mode() {
 select_os() {
     echo "Please select the OS you want to import:"
     local count=1
-    local prev_distro=""
-    local distros=()
+    local distros=("Debian" "Ubuntu Server" "CentOS" "Alma Linux" "Rocky Linux" "Fedora" "Oracle Linux" "openSUSE Leap")
     local options=()
 
-    # First, collect all unique distros
-    for os in "${!os_images[@]}"; do
-        distro=$(echo "$os" | awk '{print $1 " " $2}')
-        if [[ ! " ${distros[@]} " =~ " ${distro} " ]]; then
-            distros+=("$distro")
-        fi
-    done
-
-    # Now, print options grouped by distro
     for distro in "${distros[@]}"; do
         echo
         echo "$distro:"
@@ -186,8 +176,7 @@ select_os() {
         local versions=()
         for os in "${!os_images[@]}"; do
             if [[ $os == $distro* ]]; then
-                version=$(echo "$os" | sed "s/$distro //; s/ (EOL)//")
-                versions+=("$version")
+                versions+=("$os")
             fi
         done
         # Sort versions
@@ -195,9 +184,8 @@ select_os() {
         unset IFS
         # Print sorted versions
         for version in "${sorted_versions[@]}"; do
-            full_os="$distro $version"
-            printf "%3d) %s\n" $count "$full_os"
-            options+=("$full_os")
+            printf "%3d) %s\n" $count "$version"
+            options+=("$version")
             ((count++))
         done
     done
@@ -206,7 +194,7 @@ select_os() {
         read -rp "Enter your choice (1-$((count-1))): " os_choice
         if [[ "$os_choice" =~ ^[0-9]+$ ]] && [ "$os_choice" -ge 1 ] && [ "$os_choice" -lt "$count" ]; then
             os_choice=${options[$((os_choice-1))]}
-            if [[ "${os_images[$os_choice]}" == *"EOL"* ]]; then
+            if [[ $os_choice == *"(EOL)"* ]]; then
                 echo "Warning: $os_choice is End of Life. It's not recommended for use due to potential security issues."
                 read -rp "Do you still want to continue? [y/N] " continue_choice
                 if [[ ! $continue_choice =~ ^[Yy]$ ]]; then
