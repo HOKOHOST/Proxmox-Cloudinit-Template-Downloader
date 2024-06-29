@@ -151,21 +151,34 @@ select_os() {
     echo "Please select the OS you want to import:"
     local count=1
     local prev_distro=""
+    local distros=()
+    local options=()
+
+    # First, collect all unique distros
     for os in "${!os_images[@]}"; do
         distro=$(echo "$os" | cut -d' ' -f1)
-        if [ "$distro" != "$prev_distro" ]; then
-            echo
-            echo "$distro:"
+        if [[ ! " ${distros[@]} " =~ " ${distro} " ]]; then
+            distros+=("$distro")
         fi
-        printf "%3d) %s\n" $count "$os"
-        ((count++))
-        prev_distro=$distro
+    done
+
+    # Now, print options grouped by distro
+    for distro in "${distros[@]}"; do
+        echo
+        echo "$distro:"
+        for os in "${!os_images[@]}"; do
+            if [[ $os == $distro* ]]; then
+                printf "%3d) %s\n" $count "$os"
+                options+=("$os")
+                ((count++))
+            fi
+        done
     done
     
     while true; do
         read -rp "Enter your choice (1-$((count-1))): " os_choice
         if [[ "$os_choice" =~ ^[0-9]+$ ]] && [ "$os_choice" -ge 1 ] && [ "$os_choice" -lt "$count" ]; then
-            os_choice=$(echo "${!os_images[@]}" | cut -d' ' -f$os_choice)
+            os_choice=${options[$((os_choice-1))]}
             if [[ $os_choice == *"EOL"* ]]; then
                 echo "Warning: $os_choice is End of Life. It's not recommended for use due to potential security issues."
                 read -rp "Do you still want to continue? [y/N] " continue_choice
