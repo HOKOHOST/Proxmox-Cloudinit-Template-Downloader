@@ -6,20 +6,33 @@ SCRIPT_URL="https://osdl.sh/pve.sh"
 check_for_updates() {
     echo "Checking for updates..."
     local latest_version
-    latest_version=$(curl -s "$SCRIPT_URL" | grep "SCRIPT_VERSION=" | cut -d'"' -f2)
-    if [ -z "$latest_version" ]; then
+    local script_content
+
+    # Download the entire script content
+    script_content=$(curl -s "$SCRIPT_URL")
+    if [ -z "$script_content" ]; then
         echo "Failed to check for updates. Please check your internet connection."
         return
-    fi
-    # Remove any trailing newline characters
-    latest_version=$(echo "$latest_version" | tr -d '\n')
-    SCRIPT_VERSION=$(echo "$SCRIPT_VERSION" | tr -d '\n')
-    if [ "$latest_version" != "$SCRIPT_VERSION" ]; then
-        echo "A new version ($latest_version) is available. Current version is $SCRIPT_VERSION."
+    }
+
+    # Extract the version from the downloaded script
+    latest_version=$(echo "$script_content" | grep "^SCRIPT_VERSION=" | cut -d'"' -f2)
+
+    # Clean up the versions (remove any non-numeric or non-dot characters)
+    latest_version=$(echo "$latest_version" | tr -cd '0-9.')
+    current_version=$(echo "$SCRIPT_VERSION" | tr -cd '0-9.')
+
+    if [ -z "$latest_version" ]; then
+        echo "Failed to determine the latest version. Skipping update check."
+        return
+    }
+
+    if [ "$latest_version" != "$current_version" ]; then
+        echo "A new version ($latest_version) is available. Current version is $current_version."
         read -rp "Do you want to update? [y/N] " update_choice
         if [[ $update_choice =~ ^[Yy]$ ]]; then
             echo "Updating script..."
-            if curl -s "$SCRIPT_URL" -o "$0"; then
+            if echo "$script_content" > "$0"; then
                 echo "Update complete. Please run the script again."
                 exit 0
             else
@@ -27,7 +40,7 @@ check_for_updates() {
             fi
         fi
     else
-        echo "You are running the latest version ($SCRIPT_VERSION)."
+        echo "You are running the latest version ($current_version)."
     fi
 }
 
