@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_VERSION="1.9.0"
+SCRIPT_VERSION="1.9.1"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -122,44 +122,47 @@ select_mode() {
 }
 
 single_os_mode() {
-    select_os
-    specify_storage
-    specify_vmid
-    setup_template
+    local continue_download=true
+
+    while $continue_download; do
+        select_os
+        specify_storage
+        specify_vmid
+        if setup_template; then
+            echo "Template creation successful for $os_choice."
+        else
+            echo "Template creation failed for $os_choice."
+        fi
+
+        read -rp "Do you want to download another OS? [y/N] " choice
+        case "$choice" in
+            y|Y)
+                continue_download=true
+                echo "Proceeding to select another OS."
+                ;;
+            *)
+                continue_download=false
+                echo "Exiting single OS mode."
+                ;;
+        esac
+    done
 }
 
-bundle_mode() {
-    local bundle_type=$1
-    specify_storage
-    case "$bundle_type" in
-        "basic")
-            for os in "${basic_bundle[@]}"; do
-                os_choice=$os
-                specify_vmid_auto
-                setup_template
-            done
-            ;;
-        "basic_with_eol")
-            for os in "${basic_bundle_with_eol[@]}"; do
-                os_choice=$os
-                specify_vmid_auto
-                setup_template
-            done
-            ;;
-        "extended")
-            for os in "${extended_bundle[@]}"; do
-                os_choice=$os
-                specify_vmid_auto
-                setup_template
-            done
-            ;;
-        "extended_with_eol")
-            for os in "${extended_bundle_with_eol[@]}"; do
-                os_choice=$os
-                specify_vmid_auto
-                setup_template
-            done
-            ;;
+select_mode() {
+    echo "Please select a mode:"
+    echo "1. Single OS selection (with option to select multiple)"
+    echo "2. Basic bundle (Latest stable versions)"
+    echo "3. Basic bundle with EOL versions"
+    echo "4. Extended bundle (All supported versions)"
+    echo "5. Extended bundle with EOL versions"
+    read -rp "Enter your choice (1-5): " mode_choice
+    case $mode_choice in
+        1) single_os_mode ;;
+        2) bundle_mode "basic" ;;
+        3) bundle_mode "basic_with_eol" ;;
+        4) bundle_mode "extended" ;;
+        5) bundle_mode "extended_with_eol" ;;
+        *) echo "Invalid choice. Exiting."; exit 1 ;;
     esac
 }
 
