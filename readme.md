@@ -14,7 +14,7 @@ This bash script facilitates the downloading and setup of Cloud-init OS template
 
 ## Supported Operating Systems
 
-- Debian (9, 10, 11, 12)
+- Debian (10, 11, 12)
 - Ubuntu Server (18.04, 20.04, 22.04, 24.04)
 - CentOS (7, 8 Stream, 9 Stream)
 - Alma Linux (8, 9)
