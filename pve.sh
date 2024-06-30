@@ -79,32 +79,36 @@ EOF
 }
 
 declare -A os_images=(
-    ["Debian 9 (EOL)"]="https://cloud.debian.org/images/cloud/stretch/latest/debian-9-generic-amd64.qcow2"
-    ["Debian 10 (EOL)"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
-    ["Debian 11"]="https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
-    ["Debian 12"]="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
-    ["Ubuntu Server 18.04 (EOL)"]="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
-    ["Ubuntu Server 20.04"]="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
-    ["Ubuntu Server 22.04"]="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-    ["Ubuntu Server 24.04"]="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
-    ["CentOS 7 (EOL)"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2"
-    ["CentOS 8 (EOL)"]="https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
-    ["CentOS 8 Stream"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
-    ["CentOS 9 Stream"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
-    ["Alma Linux 8"]="https://repo.almalinux.org/almalinux/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2"
-    ["Alma Linux 9"]="https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
-    ["Rocky Linux 8"]="https://download.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2"
-    ["Rocky Linux 9"]="https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2"
-    ["Fedora 38"]="https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images/Fedora-Cloud-Base-38-1.6.x86_64.qcow2"
-    ["Oracle Linux 8"]="https://yum.oracle.com/templates/OracleLinux/OL8/u7/x86_64/OL8U7_x86_64-kvm-b198.qcow2"
-    ["Oracle Linux 9"]="https://yum.oracle.com/templates/OracleLinux/OL9/u2/x86_64/OL9U2_x86_64-kvm-b140.qcow2"
-    ["openSUSE Leap 15.4"]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.4/images/openSUSE-Leap-15.4.x86_64-1.0.0-NoCloud-Build3.48.qcow2"
-)
+        ["Debian 9 (EOL)"]="https://cloud.debian.org/images/cloud/stretch/latest/debian-9-generic-amd64.qcow2"
+        ["Debian 10 (EOL)"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
+        ["Debian 11"]="https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
+        ["Debian 12"]="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
+        ["Ubuntu Server 18.04 (EOL)"]="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
+        ["Ubuntu Server 20.04"]="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
+        ["Ubuntu Server 22.04"]="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+        ["Ubuntu Server 24.04"]="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
+        ["CentOS 7 (EOL)"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2"
+        ["CentOS 8 (EOL)"]="https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
+        ["CentOS 8 Stream"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
+        ["CentOS 9 Stream"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
+        ["Alma Linux 8"]="https://repo.almalinux.org/almalinux/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2"
+        ["Alma Linux 9"]="https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
+        ["Rocky Linux 8"]="https://download.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2"
+        ["Rocky Linux 9"]="https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2"
+        ["Fedora 38"]="https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images/Fedora-Cloud-Base-38-1.6.x86_64.qcow2"
+        ["Oracle Linux 8"]="https://yum.oracle.com/templates/OracleLinux/OL8/u7/x86_64/OL8U7_x86_64-kvm-b198.qcow2"
+        ["Oracle Linux 9"]="https://yum.oracle.com/templates/OracleLinux/OL9/u2/x86_64/OL9U2_x86_64-kvm-b140.qcow2"
+        ["openSUSE Leap 15.4"]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.4/images/openSUSE-Leap-15.4.x86_64-1.0.0-NoCloud-Build3.48.qcow2"
+    )
 
-basic_bundle=("Debian 12" "Ubuntu 22.04" "CentOS Stream 9" "Alma Linux 9" "Rocky Linux 9")
-basic_bundle_with_eol=("${basic_bundle[@]}" "Debian 10 (EOL)" "Ubuntu 18.04 (EOL)" "CentOS 7 (EOL)")
-extended_bundle=("Debian 11" "Debian 12" "Ubuntu 20.04" "Ubuntu 22.04" "Ubuntu 24.04" "CentOS Stream 8" "CentOS Stream 9" "Alma Linux 8" "Alma Linux 9" "Rocky Linux 8" "Rocky Linux 9" "Fedora 38" "Oracle Linux 8" "Oracle Linux 9" "openSUSE Leap 15.4")
-extended_bundle_with_eol=("${!os_images[@]}")
+    echo "Debug: After declaring os_images"
+
+    basic_bundle=("Debian 12" "Ubuntu 22.04" "CentOS Stream 9" "Alma Linux 9" "Rocky Linux 9")
+    basic_bundle_with_eol=("${basic_bundle[@]}" "Debian 10 (EOL)" "Ubuntu 18.04 (EOL)" "CentOS 7 (EOL)")
+    extended_bundle=("Debian 11" "Debian 12" "Ubuntu 20.04" "Ubuntu 22.04" "Ubuntu 24.04" "CentOS Stream 8" "CentOS Stream 9" "Alma Linux 8" "Alma Linux 9" "Rocky Linux 8" "Rocky Linux 9" "Fedora 38" "Oracle Linux 8" "Oracle Linux 9" "openSUSE Leap 15.4")
+    extended_bundle_with_eol=("${!os_images[@]}")
+
+    echo "Debug: After declaring bundles"
 
 select_mode() {
     echo "Please select a mode:"
@@ -424,3 +428,10 @@ main() {
 echo "Calling main function"
 main
 echo "Script completed"
+
+    echo "Debug: Reached end of script"
+}
+
+echo "Debug: Before calling run_script"
+run_script
+echo "Debug: After calling run_script"
