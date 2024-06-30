@@ -2,7 +2,7 @@
 
 set -e
 
-SCRIPT_VERSION="0.4"
+SCRIPT_VERSION="0.5"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -72,7 +72,6 @@ EOF
 }
 
 declare -A os_images=(
-    ["Debian 9 (EOL)"]="https://cloud.debian.org/images/cloud/stretch/latest/debian-9-generic-amd64.qcow2"
     ["Debian 10 (EOL)"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
     ["Debian 11"]="https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
     ["Debian 12"]="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
@@ -91,7 +90,7 @@ declare -A os_images=(
     ["Fedora 38"]="https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images/Fedora-Cloud-Base-38-1.6.x86_64.qcow2"
     ["Oracle Linux 8"]="https://yum.oracle.com/templates/OracleLinux/OL8/u7/x86_64/OL8U7_x86_64-kvm-b198.qcow2"
     ["Oracle Linux 9"]="https://yum.oracle.com/templates/OracleLinux/OL9/u2/x86_64/OL9U2_x86_64-kvm-b140.qcow2"
-    ["openSUSE Leap 15.4"]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.4/images/openSUSE-Leap-15.4.x86_64-1.0.0-NoCloud-Build3.48.qcow2"
+    ["openSUSE Leap 15.4"]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.4/images/openSUSE-Leap-15.4.x86_64-NoCloud.qcow2"
 )
 
 basic_bundle=("Debian 12" "Ubuntu Server 22.04" "CentOS 9 Stream" "Alma Linux 9" "Rocky Linux 9")
