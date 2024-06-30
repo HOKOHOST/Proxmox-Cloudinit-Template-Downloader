@@ -330,22 +330,47 @@ install_package() {
 customize_image() {
     local action=$1
     local command=$2
+    local image_path="/var/tmp/image.qcow2"
     
     if ! command -v virt-customize &>/dev/null; then
         echo "virt-customize is not installed. Skipping $action."
         return 1
     fi
     
-    echo "Executing: virt-customize -a /var/tmp/image.qcow2 $command"
-    if ! eval virt-customize -a "/var/tmp/image.qcow2" "$command"; then
+    echo "Executing: virt-customize -a $image_path $command"
+    if ! eval virt-customize -a "$image_path" "$command"; then
         echo "Failed to $action."
+        echo "Debug information:"
+        ls -l "$image_path"
+        file "$image_path"
         return 1
     fi
     echo "Successfully $action."
 }
 
 setup_template() {
-    # ... (previous parts of the function remain the same)
+    local image_url="${os_images[$os_choice]}"
+    local image_path="/var/tmp/image.qcow2"
+    echo "Downloading the OS image for $os_choice from $image_url..."
+    
+    if ! wget -O "$image_path" "$image_url" --progress=bar:force:noscroll; then
+        echo "Failed to download the image. Please check your internet connection and try again."
+        return 1
+    fi
+
+    if [ ! -s "$image_path" ]; then
+        echo "The downloaded image file is empty. Please try again or choose a different OS."
+        rm -f "$image_path"
+        return 1
+    fi
+
+    local libguestfs_installed=false
+    if install_package "libguestfs-tools"; then
+        libguestfs_installed=true
+    else
+        echo "libguestfs-tools installation failed. Proceeding without image customization."
+        read -p "Press Enter to continue or Ctrl+C to abort..."
+    fi
 
     if $libguestfs_installed; then
         local options=(
@@ -374,7 +399,13 @@ setup_template() {
 
             read -rp "Do you want to $option? [y/N] " choice
             case "$choice" in
-                y|Y) customize_image "$option" "$command" ;;
+                y|Y) 
+                    if [ -f "$image_path" ]; then
+                        customize_image "$option" "$command"
+                    else
+                        echo "Error: Image file not found. Skipping customization."
+                    fi
+                    ;;
                 *) echo "Skipping $option." ;;
             esac
         done
@@ -389,7 +420,7 @@ setup_template() {
 
     echo "Importing the disk image..."
     local disk_import
-    disk_import=$(qm importdisk "$vmid" image.qcow2 "$storage" --format qcow2)
+    disk_import=$(qm importdisk "$vmid" "$image_path" "$storage" --format qcow2)
     local disk
     disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
     local disk_path="${disk#*:}"
@@ -407,10 +438,10 @@ setup_template() {
         echo "New template created for $os_choice with VMID $vmid."
 
         echo "Deleting the downloaded image to save space..."
-        rm -f /var/tmp/image.qcow2
+        rm -f "$image_path"
     else
         echo "Failed to import the disk image."
-        rm -f /var/tmp/image.qcow2
+        rm -f "$image_path"
         return 1
     fi
 }
