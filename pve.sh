@@ -3,7 +3,7 @@
 echo "Script started"
 set -x
 
-SCRIPT_VERSION="1.9.5"
+SCRIPT_VERSION="0.2"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
