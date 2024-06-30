@@ -2,7 +2,7 @@
 
 set -e
 
-SCRIPT_VERSION="0.2"
+SCRIPT_VERSION="0.3"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
