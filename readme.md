@@ -4,91 +4,72 @@ This bash script facilitates the downloading and setup of Cloud-init OS template
 
 ## Features
 
-The script supports a predefined list of cloud-init enabled OS images, which currently includes:
-- Debian 10 (EOL - No Support)
-- Debian 11
-- Debian 12
-- Ubuntu Server 20.04
-- Ubuntu Server 22.04
-- Alma Linux 8
-- Alma Linux 9 *Not working yet.. (Maybe image problem?)
-- CentOS 7 (No Support) *Not working for qemu-agent / ssh configs
-- CentOS 8 Stream (No Support)
-- CentOS 9 Stream (No Support)
+- Supports a wide range of cloud-init enabled OS images
+- Automated QEMU Guest Agent installation
+- Enabling of SSH access for VMs
+- Configuration of SSH to permit password authentication
+- Option to enable root SSH login
+- Bulk download and customization options
+- Improved error handling and debugging information
 
-## Beta Feature: osdl.sh/osdlt.sh
+## Supported Operating Systems
 
-We are excited to announce the beta release of the `osdl.sh/osdlt.sh` script, which provides extended functionality for Proxmox installations. With this script, you can:
-
-- Install the QEMU Guest Agent on your virtual machines.
-- Enable SSH access for easy management.
-- Configure SSH to permit password authentication.
-
-This beta feature is still under active development, and we would appreciate any feedback on your experience with `osdlt.sh`. Please submit any issues you encounter or enhancements you suggest.
-
-### How to Use the Beta Script
-
-To leverage the enhancements in the beta testing script, perform the following steps:
-
-1. Download the testing script:
-
-    ```bash
-    wget osdl.sh/osdlt.sh
-    ```
-
-2. Make sure the `osdlt.sh` is executable:
-
-    ```bash
-    chmod +x osdlt.sh
-    ```
-
-3. Execute the script with root privileges:
-
-    ```bash
-    ./osdlt.sh
-    ```
-
-Your input on this beta feature will help us improve its performance and reliability for future releases.
+- Debian (9, 10, 11, 12)
+- Ubuntu Server (18.04, 20.04, 22.04, 24.04)
+- CentOS (7, 8 Stream, 9 Stream)
+- Alma Linux (8, 9)
+- Rocky Linux (8, 9)
+- Fedora 38
+- Oracle Linux (8, 9)
+- openSUSE Leap 15.4
 
 ## Prerequisites
 
-- A Proxmox VE installation.
-- Internet connectivity to download OS images.
-- Sufficient storage space in your desired storage location for the image files.
+- A Proxmox VE installation
+- Internet connectivity to download OS images
+- Sufficient storage space in your desired storage location for the image files
 
 ## Usage
 
-1. Downloading the script:
+### Option 1: Quick Single-Line Command (Recommended)
 
+Use this command to download and run the script in one go:
+
+```bash
+bash <(wget -qO- osdl.sh/pve.sh)
+```
+
+### Option 2: Download and Save for Repeated Use
+
+1. Download the script:
     ```bash
-    wget osdl.sh/osdl.sh
+    wget osdl.sh/pve.sh
     ```
 
-2. Ensure the `osdl.sh` script is executable:
-
+2. Make the script executable:
     ```bash
-    chmod +x osdl.sh
+    chmod +x pve.sh
     ```
 
-3. Run the script as the root user (or with sudo privileges) on your Proxmox server:
-
+3. Run the script:
     ```bash
-    ./osdl.sh
+    ./pve.sh
     ```
-
-4. Follow the on-screen prompts to:
-    - Select the desired operating system.
-    - Specify the target storage location.
-    - Assign a VMID for the new template.
-  
-5. The script will handle the rest!
 
 ## Interactive Prompts
 
 You will be prompted for the following information:
-1. **Operating System Selection**: Choose from the predefined list of supported OS templates.
-2. **Target Storage**: Enter the target storage ID (e.g., 'local').
+
+1. **Operating System Selection**: Choose from the list of supported OS templates.
+2. **Target Storage**: Enter the target storage ID (e.g., 'local-zfs').
 3. **VMID**: Assign a VMID that is not already in use on your Proxmox server.
+4. **Customization Options**: Choose whether to install QEMU Guest Agent, enable SSH access, allow password authentication, and enable root SSH login.
+
+For bulk operations, you'll have the option to apply these customizations to all downloads or be prompted for each.
+
+## Error Handling and Debugging
+
+The script now includes improved error handling and provides more detailed debugging information if issues occur during the download or customization process.
 
 ## Contributions
 
