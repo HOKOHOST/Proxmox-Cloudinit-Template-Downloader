@@ -304,9 +304,19 @@ install_package() {
         echo "These functions allow you to customize the OS image before creating the template."
         read -rp "Do you want to install $package? [y/N] " install_choice
         if [[ $install_choice =~ ^[Yy]$ ]]; then
+            echo "Updating package lists..."
+            if ! apt-get update; then
+                echo "Failed to update package lists. Please check your internet connection and try again."
+                return 1
+            fi
             echo "Installing $package..."
-            if ! apt-get update && apt-get install -y "$package"; then
-                echo "Failed to install $package. Some functions will be unavailable."
+            if ! apt-get install -y "$package"; then
+                echo "Failed to install $package. Please try the following steps:"
+                echo "1. Run 'apt-get update' manually to ensure your package lists are up to date."
+                echo "2. Try installing the package manually with 'apt-get install $package'."
+                echo "3. If the problem persists, check your internet connection and proxy settings."
+                echo "4. Ensure that the Proxmox repositories are correctly configured."
+                echo "Some functions will be unavailable."
                 return 1
             fi
         else
@@ -350,7 +360,12 @@ setup_template() {
     fi
 
     local libguestfs_installed=false
-    install_package "libguestfs-tools" && libguestfs_installed=true
+    if install_package "libguestfs-tools"; then
+        libguestfs_installed=true
+    else
+        echo "libguestfs-tools installation failed. Proceeding without image customization."
+        read -p "Press Enter to continue or Ctrl+C to abort..."
+    fi
 
     if $libguestfs_installed; then
         local options=(
