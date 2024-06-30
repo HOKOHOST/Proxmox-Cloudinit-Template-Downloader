@@ -1,7 +1,6 @@
 #!/bin/bash
 
-echo "Script started"
-set -x
+set -e
 
 SCRIPT_VERSION="0.2"
 SCRIPT_URL="https://osdl.sh/pve.sh"
@@ -11,17 +10,13 @@ check_for_updates() {
     local latest_version
     local script_content
 
-    # Download the entire script content
     script_content=$(curl -s "$SCRIPT_URL")
     if [ -z "$script_content" ]; then
         echo "Failed to check for updates. Please check your internet connection."
         return
     fi
 
-    # Extract the version from the downloaded script
     latest_version=$(echo "$script_content" | grep "^SCRIPT_VERSION=" | cut -d'"' -f2)
-
-    # Clean up the versions (remove any non-numeric or non-dot characters)
     latest_version=$(echo "$latest_version" | tr -cd '0-9.')
     current_version=$(echo "$SCRIPT_VERSION" | tr -cd '0-9.')
 
@@ -47,7 +42,6 @@ check_for_updates() {
     fi
 }
 
-
 show_welcome_message() {
     clear
     cat << "EOF"
@@ -58,7 +52,6 @@ show_welcome_message() {
 ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
 ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓██▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
  ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓███████▓▒░░▒▓████████▓▒░▒▓██▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
-                                                                                       
 EOF
     echo -e "\nWelcome to OSDL - Operating System Downloader for Proxmox VE (v$SCRIPT_VERSION)"
     echo "============================================================="
@@ -79,40 +72,36 @@ EOF
 }
 
 declare -A os_images=(
-        ["Debian 9 (EOL)"]="https://cloud.debian.org/images/cloud/stretch/latest/debian-9-generic-amd64.qcow2"
-        ["Debian 10 (EOL)"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
-        ["Debian 11"]="https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
-        ["Debian 12"]="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
-        ["Ubuntu Server 18.04 (EOL)"]="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
-        ["Ubuntu Server 20.04"]="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
-        ["Ubuntu Server 22.04"]="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-        ["Ubuntu Server 24.04"]="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
-        ["CentOS 7 (EOL)"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2"
-        ["CentOS 8 (EOL)"]="https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
-        ["CentOS 8 Stream"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
-        ["CentOS 9 Stream"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
-        ["Alma Linux 8"]="https://repo.almalinux.org/almalinux/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2"
-        ["Alma Linux 9"]="https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
-        ["Rocky Linux 8"]="https://download.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2"
-        ["Rocky Linux 9"]="https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2"
-        ["Fedora 38"]="https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images/Fedora-Cloud-Base-38-1.6.x86_64.qcow2"
-        ["Oracle Linux 8"]="https://yum.oracle.com/templates/OracleLinux/OL8/u7/x86_64/OL8U7_x86_64-kvm-b198.qcow2"
-        ["Oracle Linux 9"]="https://yum.oracle.com/templates/OracleLinux/OL9/u2/x86_64/OL9U2_x86_64-kvm-b140.qcow2"
-        ["openSUSE Leap 15.4"]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.4/images/openSUSE-Leap-15.4.x86_64-1.0.0-NoCloud-Build3.48.qcow2"
-    )
+    ["Debian 9 (EOL)"]="https://cloud.debian.org/images/cloud/stretch/latest/debian-9-generic-amd64.qcow2"
+    ["Debian 10 (EOL)"]="https://cloud.debian.org/images/cloud/buster/latest/debian-10-generic-amd64.qcow2"
+    ["Debian 11"]="https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
+    ["Debian 12"]="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
+    ["Ubuntu Server 18.04 (EOL)"]="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
+    ["Ubuntu Server 20.04"]="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
+    ["Ubuntu Server 22.04"]="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+    ["Ubuntu Server 24.04"]="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
+    ["CentOS 7 (EOL)"]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2"
+    ["CentOS 8 (EOL)"]="https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
+    ["CentOS 8 Stream"]="https://cloud.centos.org/centos/8-stream/x86_64/images/CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2"
+    ["CentOS 9 Stream"]="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
+    ["Alma Linux 8"]="https://repo.almalinux.org/almalinux/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2"
+    ["Alma Linux 9"]="https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
+    ["Rocky Linux 8"]="https://download.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2"
+    ["Rocky Linux 9"]="https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2"
+    ["Fedora 38"]="https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images/Fedora-Cloud-Base-38-1.6.x86_64.qcow2"
+    ["Oracle Linux 8"]="https://yum.oracle.com/templates/OracleLinux/OL8/u7/x86_64/OL8U7_x86_64-kvm-b198.qcow2"
+    ["Oracle Linux 9"]="https://yum.oracle.com/templates/OracleLinux/OL9/u2/x86_64/OL9U2_x86_64-kvm-b140.qcow2"
+    ["openSUSE Leap 15.4"]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.4/images/openSUSE-Leap-15.4.x86_64-1.0.0-NoCloud-Build3.48.qcow2"
+)
 
-    echo "Debug: After declaring os_images"
-
-    basic_bundle=("Debian 12" "Ubuntu 22.04" "CentOS Stream 9" "Alma Linux 9" "Rocky Linux 9")
-    basic_bundle_with_eol=("${basic_bundle[@]}" "Debian 10 (EOL)" "Ubuntu 18.04 (EOL)" "CentOS 7 (EOL)")
-    extended_bundle=("Debian 11" "Debian 12" "Ubuntu 20.04" "Ubuntu 22.04" "Ubuntu 24.04" "CentOS Stream 8" "CentOS Stream 9" "Alma Linux 8" "Alma Linux 9" "Rocky Linux 8" "Rocky Linux 9" "Fedora 38" "Oracle Linux 8" "Oracle Linux 9" "openSUSE Leap 15.4")
-    extended_bundle_with_eol=("${!os_images[@]}")
-
-    echo "Debug: After declaring bundles"
+basic_bundle=("Debian 12" "Ubuntu Server 22.04" "CentOS 9 Stream" "Alma Linux 9" "Rocky Linux 9")
+basic_bundle_with_eol=("${basic_bundle[@]}" "Debian 10 (EOL)" "Ubuntu Server 18.04 (EOL)" "CentOS 7 (EOL)")
+extended_bundle=("Debian 11" "Debian 12" "Ubuntu Server 20.04" "Ubuntu Server 22.04" "Ubuntu Server 24.04" "CentOS 8 Stream" "CentOS 9 Stream" "Alma Linux 8" "Alma Linux 9" "Rocky Linux 8" "Rocky Linux 9" "Fedora 38" "Oracle Linux 8" "Oracle Linux 9" "openSUSE Leap 15.4")
+extended_bundle_with_eol=("${!os_images[@]}")
 
 select_mode() {
     echo "Please select a mode:"
-    echo "1. Single OS selection"
+    echo "1. Single OS selection (with option to select multiple)"
     echo "2. Basic bundle (Latest stable versions)"
     echo "3. Basic bundle with EOL versions"
     echo "4. Extended bundle (All supported versions)"
@@ -155,30 +144,57 @@ single_os_mode() {
     done
 }
 
-select_mode() {
-    echo "Please select a mode:"
-    echo "1. Single OS selection (with option to select multiple)"
-    echo "2. Basic bundle (Latest stable versions)"
-    echo "3. Basic bundle with EOL versions"
-    echo "4. Extended bundle (All supported versions)"
-    echo "5. Extended bundle with EOL versions"
-    read -rp "Enter your choice (1-5): " mode_choice
-    case $mode_choice in
-        1) single_os_mode ;;
-        2) bundle_mode "basic" ;;
-        3) bundle_mode "basic_with_eol" ;;
-        4) bundle_mode "extended" ;;
-        5) bundle_mode "extended_with_eol" ;;
-        *) echo "Invalid choice. Exiting."; exit 1 ;;
+bundle_mode() {
+    local bundle_type=$1
+    specify_storage
+    case "$bundle_type" in
+        "basic")
+            for os in "${basic_bundle[@]}"; do
+                os_choice=$os
+                specify_vmid_auto
+                setup_template
+            done
+            ;;
+        "basic_with_eol")
+            for os in "${basic_bundle_with_eol[@]}"; do
+                os_choice=$os
+                specify_vmid_auto
+                setup_template
+            done
+            ;;
+        "extended")
+            for os in "${extended_bundle[@]}"; do
+                os_choice=$os
+                specify_vmid_auto
+                setup_template
+            done
+            ;;
+        "extended_with_eol")
+            for os in "${extended_bundle_with_eol[@]}"; do
+                os_choice=$os
+                specify_vmid_auto
+                setup_template
+            done
+            ;;
     esac
 }
 
 select_os() {
     echo "Please select the OS you want to import:"
     local count=1
-    local distros=("Debian" "Ubuntu Server" "CentOS" "Alma Linux" "Rocky Linux" "Fedora" "Oracle Linux" "openSUSE Leap")
+    local prev_distro=""
+    local distros=()
     local options=()
 
+    # First, collect all unique distros
+    for os in "${!os_images[@]}"; do
+        distro=$(echo "$os" | cut -d' ' -f1-2)
+        if [[ ! " ${distros[@]} " =~ " ${distro} " ]]; then
+            distros+=("$distro")
+        fi
+    done
+
+    # Now, print options grouped by distro
     for distro in "${distros[@]}"; do
         echo
         echo "$distro:"
@@ -299,7 +315,7 @@ install_package() {
         fi
     fi
     return 0
-}	 
+}
 
 customize_image() {
     local action=$1
@@ -409,7 +425,8 @@ main() {
     show_welcome_message
     echo "Welcome message shown"
     check_for_updates
-    echo "Update check comple    echo "Press any key to continue..."
+    echo "Update check completed"
+    echo "Press any key to continue..."
     read -n 1 -s -r
     echo
     echo "Selecting mode"
@@ -423,15 +440,7 @@ main() {
     echo "Remember, CUHK LTD. offers enterprise-level Proxmox setup services."
     echo "Visit https://osdl.sh or contact info@cuhk.uk for more information."
     echo "Your support helps us continue improving. Consider a donation if you found this useful!"
-   }
-
-echo "Calling main function"
-main
-echo "Script completed"
-
-    echo "Debug: Reached end of script"
+    echo "Main function completed"
 }
 
-echo "Debug: Before calling run_script"
-run_script
-echo "Debug: After calling run_script"
+main
