@@ -2,7 +2,7 @@
 
 set -e
 
-SCRIPT_VERSION="0.6"
+SCRIPT_VERSION="0.7"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -361,6 +361,8 @@ setup_template() {
         read -p "Press Enter to continue or Ctrl+C to abort..."
     fi
 
+    local qemu_agent_installed=false
+
     if $libguestfs_installed; then
         local options=(
             "Install qemu-guest-agent"
@@ -409,6 +411,9 @@ setup_template() {
             if $do_customize; then
                 if [ -f "$image_path" ]; then
                     customize_image "$option" "$command"
+                    if [ "$option" == "Install qemu-guest-agent" ]; then
+                        qemu_agent_installed=true
+                    fi
                 else
                     echo "Error: Image file not found. Skipping customization."
                 fi
@@ -440,6 +445,13 @@ setup_template() {
         qm set "$vmid" --ide2 "$storage":cloudinit
         qm set "$vmid" --boot c --bootdisk scsi0
         qm set "$vmid" --serial0 socket --vga serial0
+
+        # Enable QEMU Guest Agent in Proxmox config if it was installed in the image
+        if $qemu_agent_installed; then
+            echo "Enabling QEMU Guest Agent in Proxmox configuration..."
+            qm set "$vmid" --agent enabled=1
+        fi
+
         qm template "$vmid"
 
         echo "New template created for $os_choice with VMID $vmid."
