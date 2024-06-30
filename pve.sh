@@ -2,7 +2,7 @@
 
 set -e
 
-SCRIPT_VERSION="0.5"
+SCRIPT_VERSION="0.6"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -369,6 +369,16 @@ setup_template() {
             "Enable root SSH login"
         )
 
+        local apply_all=""
+        if [[ -z $BULK_CUSTOMIZE ]]; then
+            read -rp "Do you want to apply all customizations? (y)es/(n)o/(a)sk for each: " apply_all
+            case $apply_all in
+                y|Y) BULK_CUSTOMIZE="yes" ;;
+                n|N) BULK_CUSTOMIZE="no" ;;
+                *) BULK_CUSTOMIZE="ask" ;;
+            esac
+        fi
+
         for option in "${options[@]}"; do
             local command=""
             case "$option" in
@@ -386,17 +396,25 @@ setup_template() {
                     ;;
             esac
 
-            read -rp "Do you want to $option? [y/N] " choice
-            case "$choice" in
-                y|Y) 
-                    if [ -f "$image_path" ]; then
-                        customize_image "$option" "$command"
-                    else
-                        echo "Error: Image file not found. Skipping customization."
-                    fi
+            local do_customize=false
+            case $BULK_CUSTOMIZE in
+                "yes") do_customize=true ;;
+                "no") do_customize=false ;;
+                "ask")
+                    read -rp "Do you want to $option? [y/N] " choice
+                    [[ $choice =~ ^[Yy]$ ]] && do_customize=true
                     ;;
-                *) echo "Skipping $option." ;;
             esac
+
+            if $do_customize; then
+                if [ -f "$image_path" ]; then
+                    customize_image "$option" "$command"
+                else
+                    echo "Error: Image file not found. Skipping customization."
+                fi
+            else
+                echo "Skipping $option."
+            fi
         done
     else
         echo "Skipping image customization options due to missing libguestfs-tools."
@@ -455,7 +473,6 @@ main() {
     echo "Remember, CUHK LTD. offers enterprise-level Proxmox setup services."
     echo "Visit https://osdl.sh or contact info@cuhk.uk for more information."
     echo "Your support helps us continue improving. Consider a donation if you found this useful!"
-    echo "Main function completed"
 }
 
 main
