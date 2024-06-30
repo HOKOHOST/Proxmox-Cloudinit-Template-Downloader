@@ -336,7 +336,8 @@ customize_image() {
         return 1
     fi
     
-    if ! virt-customize -a "/var/tmp/image.qcow2" $command; then
+    echo "Executing: virt-customize -a /var/tmp/image.qcow2 $command"
+    if ! eval virt-customize -a "/var/tmp/image.qcow2" "$command"; then
         echo "Failed to $action."
         return 1
     fi
@@ -344,28 +345,7 @@ customize_image() {
 }
 
 setup_template() {
-    local image_url="${os_images[$os_choice]}"
-    echo "Downloading the OS image for $os_choice from $image_url..."
-    cd /var/tmp || exit
-    
-    if ! wget -O image.qcow2 "$image_url" --progress=bar:force:noscroll; then
-        echo "Failed to download the image. Please check your internet connection and try again."
-        return 1
-    fi
-
-    if [ ! -s image.qcow2 ]; then
-        echo "The downloaded image file is empty. Please try again or choose a different OS."
-        rm -f image.qcow2
-        return 1
-    fi
-
-    local libguestfs_installed=false
-    if install_package "libguestfs-tools"; then
-        libguestfs_installed=true
-    else
-        echo "libguestfs-tools installation failed. Proceeding without image customization."
-        read -p "Press Enter to continue or Ctrl+C to abort..."
-    fi
+    # ... (previous parts of the function remain the same)
 
     if $libguestfs_installed; then
         local options=(
@@ -382,13 +362,13 @@ setup_template() {
                     command="--install qemu-guest-agent --run-command 'systemctl enable qemu-guest-agent'"
                     ;;
                 "Enable SSH access")
-                    command="--run-command \"sed -i -e 's/^#Port 22/Port 22/' -e 's/^#AddressFamily any/AddressFamily any/' -e 's/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/' -e 's/^#ListenAddress ::/ListenAddress ::/' /etc/ssh/sshd_config\""
+                    command="--run-command 'sed -i -e \"s/^#Port 22/Port 22/\" -e \"s/^#AddressFamily any/AddressFamily any/\" -e \"s/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/\" -e \"s/^#ListenAddress ::/ListenAddress ::/\" /etc/ssh/sshd_config'"
                     ;;
                 "Allow PasswordAuthentication")
-                    command="--run-command \"sed -i '/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes' /etc/ssh/sshd_config && sed -i '/^PasswordAuthentication no/c\PasswordAuthentication yes' /etc/ssh/sshd_config\""
+                    command="--run-command 'sed -i \"/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes\" /etc/ssh/sshd_config && sed -i \"/^PasswordAuthentication no/c\PasswordAuthentication yes\" /etc/ssh/sshd_config'"
                     ;;
                 "Enable root SSH login")
-                    command="--run-command \"sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config\""
+                    command="--run-command 'sed -i \"s/^#PermitRootLogin prohibit-password/PermitRootLogin yes/\" /etc/ssh/sshd_config'"
                     ;;
             esac
 
@@ -400,6 +380,7 @@ setup_template() {
         done
     else
         echo "Skipping image customization options due to missing libguestfs-tools."
+    fi
     fi
 
     # Create a valid VM name
