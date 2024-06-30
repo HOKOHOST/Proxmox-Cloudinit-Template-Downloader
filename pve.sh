@@ -2,7 +2,7 @@
 
 set -e
 
-SCRIPT_VERSION="0.3"
+SCRIPT_VERSION="0.4"
 SCRIPT_URL="https://osdl.sh/pve.sh"
 
 check_for_updates() {
@@ -182,19 +182,9 @@ bundle_mode() {
 select_os() {
     echo "Please select the OS you want to import:"
     local count=1
-    local prev_distro=""
-    local distros=()
+    local distros=("Debian" "Ubuntu Server" "CentOS" "Alma Linux" "Rocky Linux" "Fedora" "Oracle Linux" "openSUSE Leap")
     local options=()
 
-    # First, collect all unique distros
-    for os in "${!os_images[@]}"; do
-        distro=$(echo "$os" | cut -d' ' -f1-2)
-        if [[ ! " ${distros[@]} " =~ " ${distro} " ]]; then
-            distros+=("$distro")
-        fi
-    done
-
-    # Now, print options grouped by distro
     for distro in "${distros[@]}"; do
         echo
         echo "$distro:"
