@@ -381,7 +381,6 @@ setup_template() {
     else
         echo "Skipping image customization options due to missing libguestfs-tools."
     fi
-    fi
 
     # Create a valid VM name
     local vm_name=$(echo "$os_choice" | sed 's/ (EOL)//; s/ /-/g')
