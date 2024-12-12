@@ -351,7 +351,7 @@ setup_template() {
         echo "The downloaded image file is empty. Please try again or choose a different OS."
         rm -f "$image_path"
         return 1
-    fi
+    }
 
     local libguestfs_installed=false
     if install_package "libguestfs-tools"; then
@@ -361,108 +361,38 @@ setup_template() {
         read -p "Press Enter to continue or Ctrl+C to abort..."
     fi
 
-    local qemu_agent_installed=false
-
-    if $libguestfs_installed; then
-        local options=(
-            "Install qemu-guest-agent"
-            "Enable SSH access"
-            "Allow PasswordAuthentication"
-            "Enable root SSH login"
-        )
-
-        local apply_all=""
-        if [[ -z $BULK_CUSTOMIZE ]]; then
-            read -rp "Do you want to apply all customizations? (y)es/(n)o/(a)sk for each: " apply_all
-            case $apply_all in
-                y|Y) BULK_CUSTOMIZE="yes" ;;
-                n|N) BULK_CUSTOMIZE="no" ;;
-                *) BULK_CUSTOMIZE="ask" ;;
-            esac
-        fi
-
-        for option in "${options[@]}"; do
-            local command=""
-            case "$option" in
-                "Install qemu-guest-agent")
-                    command="--install qemu-guest-agent --run-command 'systemctl enable qemu-guest-agent'"
-                    ;;
-                "Enable SSH access")
-                    command="--run-command 'sed -i -e \"s/^#Port 22/Port 22/\" -e \"s/^#AddressFamily any/AddressFamily any/\" -e \"s/^#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/\" -e \"s/^#ListenAddress ::/ListenAddress ::/\" /etc/ssh/sshd_config'"
-                    ;;
-                "Allow PasswordAuthentication")
-                    command="--run-command 'sed -i \"/^#PasswordAuthentication[[:space:]]/c\PasswordAuthentication yes\" /etc/ssh/sshd_config && sed -i \"/^PasswordAuthentication no/c\PasswordAuthentication yes\" /etc/ssh/sshd_config'"
-                    ;;
-                "Enable root SSH login")
-                    command="--run-command 'sed -i \"s/^#PermitRootLogin prohibit-password/PermitRootLogin yes/\" /etc/ssh/sshd_config'"
-                    ;;
-            esac
-
-            local do_customize=false
-            case $BULK_CUSTOMIZE in
-                "yes") do_customize=true ;;
-                "no") do_customize=false ;;
-                "ask")
-                    read -rp "Do you want to $option? [y/N] " choice
-                    [[ $choice =~ ^[Yy]$ ]] && do_customize=true
-                    ;;
-            esac
-
-            if $do_customize; then
-                if [ -f "$image_path" ]; then
-                    customize_image "$option" "$command"
-                    if [ "$option" == "Install qemu-guest-agent" ]; then
-                        qemu_agent_installed=true
-                    fi
-                else
-                    echo "Error: Image file not found. Skipping customization."
-                fi
-            else
-                echo "Skipping $option."
-            fi
-        done
-    else
-        echo "Skipping image customization options due to missing libguestfs-tools."
-    fi
-
     # Create a valid VM name
     local vm_name=$(echo "$os_choice" | sed 's/ (EOL)//; s/ /-/g')
     echo "Creating the VM as '$vm_name'..."
-    qm create "$vmid" --name "$vm_name" --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0
+    
+    # Modified VM creation command for PVE 8.3 compatibility
+    qm create "$vmid" --name "$vm_name" --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0 --ostype l26
 
     echo "Importing the disk image..."
-    local disk_import
-    disk_import=$(qm importdisk "$vmid" "$image_path" "$storage" --format qcow2)
-    local disk
-    disk=$(echo "$disk_import" | grep 'Successfully imported disk as' | cut -d "'" -f 2)
-    local disk_path="${disk#*:}"
+    # Modified disk import command with explicit format specification
+    qm importdisk "$vmid" "$image_path" "$storage" --format qcow2
 
-    if [[ -n "$disk_path" ]]; then
-        echo "Disk image imported as $disk_path"
+    # Modified disk attachment for PVE 8.3
+    echo "Configuring VM to use the imported disk..."
+    qm set "$vmid" --scsihw virtio-scsi-single
+    qm set "$vmid" --scsi0 "$storage":vm-"$vmid"-disk-0
+    qm set "$vmid" --ide2 "$storage":cloudinit
+    qm set "$vmid" --boot order=scsi0
+    qm set "$vmid" --serial0 socket
+    qm set "$vmid" --vga serial0
 
-        echo "Configuring VM to use the imported disk..."
-        qm set "$vmid" --scsihw virtio-scsi-pci --scsi0 "$disk_path"
-        qm set "$vmid" --ide2 "$storage":cloudinit
-        qm set "$vmid" --boot c --bootdisk scsi0
-        qm set "$vmid" --serial0 socket --vga serial0
-
-        # Enable QEMU Guest Agent in Proxmox config if it was installed in the image
-        if $qemu_agent_installed; then
-            echo "Enabling QEMU Guest Agent in Proxmox configuration..."
-            qm set "$vmid" --agent enabled=1
-        fi
-
-        qm template "$vmid"
-
-        echo "New template created for $os_choice with VMID $vmid."
-
-        echo "Deleting the downloaded image to save space..."
-        rm -f "$image_path"
-    else
-        echo "Failed to import the disk image."
-        rm -f "$image_path"
-        return 1
+    # Enable QEMU Guest Agent if installed
+    if $qemu_agent_installed; then
+        echo "Enabling QEMU Guest Agent in Proxmox configuration..."
+        qm set "$vmid" --agent enabled=1,fstrim_cloned_disks=1
     fi
+
+    qm template "$vmid"
+
+    echo "New template created for $os_choice with VMID $vmid."
+
+    echo "Deleting the downloaded image to save space..."
+    rm -f "$image_path"
 }
 
 main() {
