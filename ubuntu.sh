@@ -35,8 +35,8 @@ function run_script() {
 }
 
 function ubuntu_menu() {
-    header_info  # Only clear and display the header once
     while true; do
+        header_info
         show_welcome
         echo -e "\nPlease select an option:"
         echo "1. Ubuntu 20.04 LTS (Focal Fossa)"
@@ -44,25 +44,32 @@ function ubuntu_menu() {
         echo "3. Ubuntu 24.04 LTS (Noble Numbat)"
         echo "4. Return to Main Menu"
         echo
-        read -r choice
         
+        # Use read with a timeout to prevent infinite loops
+        read -t 60 -p "Enter your choice (1-4): " choice
+        
+        if [ $? -ne 0 ]; then
+            echo -e "\nNo input received. Returning to main menu..."
+            exit 0
+        fi
+
         case "$choice" in
-            "1")
+            1)
                 echo -e "${GREEN}Downloading Ubuntu 20.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu2004.sh"
-                break
+                exit 0
                 ;;
-            "2")
+            2)
                 echo -e "${GREEN}Downloading Ubuntu 22.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu2204.sh"
-                break
+                exit 0
                 ;;
-            "3")
+            3)
                 echo -e "${GREEN}Downloading Ubuntu 24.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu2404.sh"
-                break
+                exit 0
                 ;;
-            "4")
+            4)
                 echo -e "${GREEN}Returning to main menu...${NC}"
                 run_script "https://osdl.sh/test.sh"
                 exit 0
@@ -70,6 +77,7 @@ function ubuntu_menu() {
             *)
                 echo -e "\nInvalid option. Please try again."
                 sleep 2
+                continue
                 ;;
         esac
     done
