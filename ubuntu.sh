@@ -35,8 +35,8 @@ function run_script() {
 }
 
 function ubuntu_menu() {
+    header_info  # Only clear and display the header once
     while true; do
-        header_info
         show_welcome
         echo -e "\nPlease select an option:"
         echo "1. Ubuntu 20.04 LTS (Focal Fossa)"
@@ -70,7 +70,6 @@ function ubuntu_menu() {
             *)
                 echo -e "\nInvalid option. Please try again."
                 sleep 2
-                continue
                 ;;
         esac
     done
