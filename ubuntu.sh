@@ -1,6 +1,36 @@
+#!/bin/bash
+SCRIPT_VERSION="1.0"
+SCRIPT_URL="https://osdl.sh"
+# Color codes
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+function header_info {
+    clear
+    cat <<"EOF"
+ ░▒▓██████▓▒░ ░▒▓███████▓▒░▒▓███████▓▒░░▒▓█▓▒░              ░▒▓███████▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░              ░▒▓██████▓▒░░▒▓████████▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓██▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓███████▓▒░░▒▓████████▓▒░▒▓██▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+EOF
+}
+function show_welcome() {
+    echo -e "\nWelcome to Ubuntu Downloader for Proxmox VE (v$SCRIPT_VERSION)"
+    echo "============================================================="
+    echo "This script is maintained by CUHK LTD."
+    echo "Download the latest version from: $SCRIPT_URL"
+    echo
+    echo "Select the Ubuntu version you'd like to install:"
+}
+
 function run_script() {
     local url=$1
     local temp_script=$(mktemp)
+    wget -O "$temp_script" "$url"
+    bash "$temp_script"
+    rm "$temp_script"
     
     # Download the script
     if ! wget -q -O "$temp_script" "$url"; then
@@ -88,3 +118,5 @@ function ubuntu_menu() {
         esac
     done
 }
+# Start the menu
+ubuntu_menu
