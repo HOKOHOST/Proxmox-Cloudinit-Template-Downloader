@@ -406,4 +406,4 @@ qm set $VMID \
 msg_ok "Created a Ubuntu 24.04 VM ${CL}${BL}(${HN})"
 msg_ok "Completed Successfully!\n"
 echo -e "Setup Cloud-Init before starting \n
-Re run OSDL.SH of you need to install more OS or do modifications on existing OS \n"
+Re run OSDL.SH if you need to install more OS or do modifications on existing OS \n"
