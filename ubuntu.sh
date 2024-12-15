@@ -44,22 +44,25 @@ function ubuntu_menu() {
         echo "3. Ubuntu 24.04 LTS (Noble Numbat)"
         echo "4. Return to Main Menu"
         echo
-        read -p "Enter your choice (1-4): " choice
-
-        case $choice in
-            1)
+        read -r choice
+        
+        case "$choice" in
+            "1")
                 echo -e "${GREEN}Downloading Ubuntu 20.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu2004.sh"
+                break
                 ;;
-            2)
+            "2")
                 echo -e "${GREEN}Downloading Ubuntu 22.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu2204.sh"
+                break
                 ;;
-            3)
+            "3")
                 echo -e "${GREEN}Downloading Ubuntu 24.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu2404.sh"
+                break
                 ;;
-            4)
+            "4")
                 echo -e "${GREEN}Returning to main menu...${NC}"
                 run_script "https://osdl.sh/test.sh"
                 exit 0
@@ -67,6 +70,7 @@ function ubuntu_menu() {
             *)
                 echo -e "\nInvalid option. Please try again."
                 sleep 2
+                continue
                 ;;
         esac
     done
