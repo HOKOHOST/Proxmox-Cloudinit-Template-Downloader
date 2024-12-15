@@ -2,6 +2,8 @@
 
 This bash script facilitates the downloading and setup of Cloud-init OS templates for Proxmox Virtual Environment (PVE). It automates the download of specified operating system images and imports them into Proxmox as VM templates, streamlining the process of creating new VMs with various operating systems.
 
+## Known Issues, Proxmox 8.3 or up might have issues running the script, will revamp when I have time.
+
 ## Features
 
 - Supports a wide range of cloud-init enabled OS images
