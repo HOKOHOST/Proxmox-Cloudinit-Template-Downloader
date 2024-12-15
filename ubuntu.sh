@@ -31,7 +31,10 @@ function show_welcome() {
 
 function run_script() {
     local url=$1
-    wget -O- "$url" | bash
+    local temp_script=$(mktemp)
+    wget -O "$temp_script" "$url"
+    bash "$temp_script"
+    rm "$temp_script"
 }
 
 function ubuntu_menu() {
