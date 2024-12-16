@@ -156,7 +156,7 @@ function main_menu() {
                 run_script "https://osdl.sh/centos.sh"
                 ;;
             5)
-                run_script "https://osdl.sh/centos.sh"
+                run_script "https://osdl.sh/alpine.sh"
                 ;;
             6)
                 echo -e "\nThank you for using OSDL!"
