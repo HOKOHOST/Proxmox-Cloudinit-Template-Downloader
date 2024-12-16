@@ -72,23 +72,23 @@ function ubuntu_menu() {
 
         case "$choice" in
             1)
-                echo -e "${GREEN}Downloading Ubuntu 20.04 LTS installation script...${NC}"
+                echo -e "${GREEN}Downloading Ubuntu Server 20.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu-2004.sh"
                 exit $?
                 ;;
             2)
-                echo -e "${GREEN}Downloading Ubuntu 22.04 LTS installation script...${NC}"
+                echo -e "${GREEN}Downloading Ubuntu Server 22.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu-2204.sh"
                 exit $?
                 ;;
             3)
-                echo -e "${GREEN}Downloading Ubuntu 24.04 LTS installation script...${NC}"
+                echo -e "${GREEN}Downloading Ubuntu Server 24.04 LTS installation script...${NC}"
                 run_script "https://osdl.sh/ubuntu-2404.sh"
                 exit $?
                 ;;
             4)
                 echo -e "${GREEN}Returning to main menu...${NC}"
-                run_script "https://osdl.sh/test.sh"
+                run_script "https://osdl.sh/start.sh"
                 exit $?
                 ;;
             *)

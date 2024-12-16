@@ -56,7 +56,7 @@ function cleanup() {
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "OSDL.SH" --title "Ubuntu Server 24.04 VM" --yesno "This will create a New Ubuntu Server 24.04 VM. Proceed?" 10 58; then
+if whiptail --backtitle "OSDL.SH" --title "Ubuntu Server 20.04 VM" --yesno "This will create a New Ubuntu Server 20.04 VM. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "⚠ User exited script \n" && exit
@@ -130,7 +130,7 @@ function default_settings() {
   FORMAT=",efitype=4m"
   MACHINE=""
   DISK_CACHE=""
-  HN="ubuntu2404"
+  HN="ubuntu2004"
   CPU_TYPE=""
   CORE_COUNT="2"
   RAM_SIZE="2048"
@@ -149,7 +149,7 @@ function default_settings() {
   echo -e "${DGN}Using MAC Address: ${BGN}${MAC}${CL}"
   echo -e "${DGN}Using VLAN: ${BGN}Default${CL}"
   echo -e "${DGN}Using Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${BL}Creating an Ubuntu Server 24.04 VM using the above default settings${CL}"
+  echo -e "${BL}Creating an Ubuntu Server 20.04 VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
@@ -202,9 +202,9 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "OSDL.SH" --inputbox "Set Hostname" 8 58 ubuntu2404 --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "OSDL.SH" --inputbox "Set Hostname" 8 58 ubuntu2004 --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="ubuntu2404"
+      HN="ubuntu2004"
       echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -300,8 +300,8 @@ function advanced_settings() {
     exit-script
   fi
 
-  if (whiptail --backtitle "OSDL.SH" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create an Ubuntu Server 24.04 VM?" --no-button Do-Over 10 58); then
-    echo -e "${RD}Creating an Ubuntu Server 24.04 VM using the above advanced settings${CL}"
+  if (whiptail --backtitle "OSDL.SH" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create an Ubuntu Server 20.04 VM?" --no-button Do-Over 10 58); then
+    echo -e "${RD}Creating an Ubuntu Server 20.04 VM using the above advanced settings${CL}"
   else
     header_info
     echo -e "${RD}Using Advanced Settings${CL}"
@@ -355,8 +355,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Ubuntu Server 24.04 Disk Image"
-URL=https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+msg_info "Retrieving the URL for the Ubuntu Server 20.04 Disk Image"
+URL=https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 wget -q --show-progress $URL
@@ -386,7 +386,7 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Ubuntu Server 24.04 VM"
+msg_info "Creating a Ubuntu Server 20.04 VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags OSDL-SH -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -399,11 +399,11 @@ qm set $VMID \
   -serial0 socket \
   -description "<div align='center'><a href='https://osdl.sh'><img src='https://osdl.sh/osdl.png'></a>
 
-  # Ubuntu Server 24.04 VM
+  # Ubuntu Server 20.04 VM
 
   <a href='https://donate.stripe.com/6oE00Y8fUe6V6uQ002'><img src='https://img.shields.io/badge/&#x2615;-Buy me a coffee-blue' /></a>
   </div>" >/dev/null
-msg_ok "Created a Ubuntu Server 24.04 VM ${CL}${BL}(${HN})"
+msg_ok "Created a Ubuntu Server 20.04 VM ${CL}${BL}(${HN})"
 msg_ok "Completed Successfully!\n"
 
 while true; do
