@@ -62,7 +62,7 @@ function ubuntu_menu() {
         echo "3. Return to Main Menu"
         echo
         
-        read -t 60 -p "Enter your choice (1-4): " choice
+        read -t 60 -p "Enter your choice (1-3): " choice
         
         if [ $? -ne 0 ]; then
             echo -e "\nNo input received. Returning to main menu..."
