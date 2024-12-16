@@ -405,5 +405,19 @@ qm set $VMID \
   </div>" >/dev/null
 msg_ok "Created a Ubuntu 24.04 VM ${CL}${BL}(${HN})"
 msg_ok "Completed Successfully!\n"
-echo -e "Setup Cloud-Init before starting \n
-Re run OSDL.SH if you need to install more OS or do modifications on existing OS \n"
+
+while true; do
+    if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another Ubuntu version?" 10 58); then
+        echo -e "\nRedirecting to Ubuntu version selector..."
+        sleep 2
+        curl -sL https://osdl.sh/ubuntu.sh | bash
+        exit
+    else
+        whiptail --backtitle "OSDL.SH" --title "Thank You!" --msgbox "Thank you for using OSDL.SH!\n\nIf you found this script helpful, please consider supporting the project:\n\nhttps://donate.stripe.com/6oE00Y8fUe6V6uQ002\n\nSetup Cloud-Init before starting the VM." 15 58
+        echo -e "\n${GN}Thank you for using OSDL.SH!${CL}"
+        echo -e "\n${YW}If you found this script helpful, please consider supporting the project:${CL}"
+        echo -e "${BL}https://donate.stripe.com/6oE00Y8fUe6V6uQ002${CL}"
+        echo -e "\n${GN}Setup Cloud-Init before starting the VM.${CL}\n"
+        exit
+    fi
+done
