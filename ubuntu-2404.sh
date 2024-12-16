@@ -397,7 +397,7 @@ qm set $VMID \
   -ide2 ${STORAGE}:cloudinit \
   -boot order=scsi0 \
   -serial0 socket \
-  -description "<div align='center'><a href='https://osdl.sh'><img src='https://osdl.sh/osdl.png'/></a>
+  -description "<div align='center'><a href='https://osdl.sh'><img src='https://osdl.sh/osdl.png'></a>
 
   # Ubuntu 24.04 VM
 
