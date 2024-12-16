@@ -407,8 +407,8 @@ msg_ok "Created a Debian 10 VM ${CL}${BL}(${HN})"
 msg_ok "Completed Successfully!\n"
 
 while true; do
-    if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another Ubuntu version?" 10 58); then
-    echo -e "\nRedirecting to Ubuntu version selector..."
+    if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another Debian version?" 10 58); then
+    echo -e "\nRedirecting to Debian version selector..."
     sleep 2
     exec bash -c "$(wget -qO- https://osdl.sh/ubuntu.sh)"
     exit
