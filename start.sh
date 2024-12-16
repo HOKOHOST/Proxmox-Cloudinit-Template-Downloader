@@ -132,6 +132,7 @@ function main_menu() {
         echo "2. Download Debian"
         echo "3. Download Ubuntu Server"
         echo "4. Download CentOS"
+        echo "4. Download Alpine"
         echo "5. Exit"
         echo
         read -t 60 -p "Enter your choice (1-4): " choice
@@ -155,6 +156,9 @@ function main_menu() {
                 run_script "https://osdl.sh/centos.sh"
                 ;;
             5)
+                run_script "https://osdl.sh/centos.sh"
+                ;;
+            6)
                 echo -e "\nThank you for using OSDL!"
                 echo "If you found this helpful, please consider supporting us at https://osdl.sh"
                 echo "Goodbye!"
