@@ -128,9 +128,9 @@ function run_script() {
 function main_menu() {
     while true; do
         echo -e "\nPlease select an option:"
-        echo "1. VM Tools"
+        echo "1. VM Tools (Coming Soon)"
         echo "2. Download Debian"
-        echo "3. Download Ubuntu"
+        echo "3. Download Ubuntu Server"
         echo "4. Exit"
         echo
         read -t 60 -p "Enter your choice (1-4): " choice
