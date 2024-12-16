@@ -77,6 +77,54 @@ function msg_error() {
   echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
 }
 
+function check_root() {
+  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
+    clear
+    msg_error "Please run this script as root."
+    echo -e "\nExiting..."
+    sleep 2
+    exit
+  fi
+}
+
+function pve_check() {
+  if ! pveversion | grep -Eq "pve-manager/8.[1-3]"; then
+    msg_error "This version of Proxmox Virtual Environment is not supported"
+    echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
+    echo -e "Exiting..."
+    sleep 2
+    exit
+fi
+}
+
+function arch_check() {
+  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+    msg_error "This script will not work with PiMox! \n"
+    echo -e "Exiting..."
+    sleep 2
+    exit
+  fi
+}
+
+function ssh_check() {
+  if command -v pveversion >/dev/null 2>&1; then
+    if [ -n "${SSH_CLIENT:+x}" ]; then
+      if whiptail --backtitle "OSDL.SH" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
+        echo "you've been warned"
+      else
+        clear
+        exit
+      fi
+    fi
+  fi
+}
+
+function exit-script() {
+  clear
+  echo -e "⚠  User exited script \n"
+  exit
+}
+
 function default_settings() {
   VMID="$NEXTID"
   FORMAT=",efitype=4m"
