@@ -2,7 +2,7 @@
 
 This bash script facilitates the downloading and setup of Cloud-init OS templates for Proxmox Virtual Environment (PVE). It automates the download of specified operating system images and imports them into Proxmox as VM templates, streamlining the process of creating new VMs with various operating systems.
 
-# Known Issues: Proxmox 8.3 or up might have issues running the script, will revamp when I have time.
+# This script has been revamped, this readme file will be updated soon
 
 ## Features
 
@@ -38,24 +38,24 @@ This bash script facilitates the downloading and setup of Cloud-init OS template
 Use this command to download and run the script in one go:
 
 ```bash
-bash <(wget -qO- osdl.sh/pve.sh)
+bash <(wget -qO- osdl.sh/start.sh)
 ```
 
 ### Option 2: Download and Save for Repeated Use
 
 1. Download the script:
     ```bash
-    wget osdl.sh/pve.sh
+    wget osdl.sh/start.sh
     ```
 
 2. Make the script executable:
     ```bash
-    chmod +x pve.sh
+    chmod +x start.sh
     ```
 
 3. Run the script:
     ```bash
-    ./pve.sh
+    ./start.sh
     ```
 
 ## Interactive Prompts
