@@ -204,7 +204,7 @@ function advanced_settings() {
 
   if VM_NAME=$(whiptail --backtitle "OSDL.SH" --inputbox "Set Hostname" 8 58 alpine3203 --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="alpine3203"
+      alpine
       echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
