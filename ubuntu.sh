@@ -28,9 +28,6 @@ function show_welcome() {
 function run_script() {
     local url=$1
     local temp_script=$(mktemp)
-    wget -O "$temp_script" "$url"
-    bash "$temp_script"
-    rm "$temp_script"
     
     # Download the script
     if ! wget -q -O "$temp_script" "$url"; then
@@ -76,44 +73,27 @@ function ubuntu_menu() {
         case "$choice" in
             1)
                 echo -e "${GREEN}Downloading Ubuntu 20.04 LTS installation script...${NC}"
-                if ! run_script "https://osdl.sh/ubuntu-2004.sh"; then
-                    echo -e "${RED}Failed to execute Ubuntu 20.04 installation script${NC}"
-                    sleep 2
-                    continue
-                fi
-                exit 0
+                run_script "https://osdl.sh/ubuntu-2004.sh"
+                exit $?
                 ;;
             2)
                 echo -e "${GREEN}Downloading Ubuntu 22.04 LTS installation script...${NC}"
-                if ! run_script "https://osdl.sh/ubuntu-2204.sh"; then
-                    echo -e "${RED}Failed to execute Ubuntu 22.04 installation script${NC}"
-                    sleep 2
-                    continue
-                fi
-                exit 0
+                run_script "https://osdl.sh/ubuntu-2204.sh"
+                exit $?
                 ;;
             3)
                 echo -e "${GREEN}Downloading Ubuntu 24.04 LTS installation script...${NC}"
-                if ! run_script "https://osdl.sh/ubuntu-2404.sh"; then
-                    echo -e "${RED}Failed to execute Ubuntu 24.04 installation script${NC}"
-                    sleep 2
-                    continue
-                fi
-                exit 0
+                run_script "https://osdl.sh/ubuntu-2404.sh"
+                exit $?
                 ;;
             4)
                 echo -e "${GREEN}Returning to main menu...${NC}"
-                if ! run_script "https://osdl.sh/test.sh"; then
-                    echo -e "${RED}Failed to return to main menu${NC}"
-                    sleep 2
-                    exit 1
-                fi
-                exit 0
+                run_script "https://osdl.sh/test.sh"
+                exit $?
                 ;;
             *)
                 echo -e "\nInvalid option. Please try again."
                 sleep 2
-                continue
                 ;;
         esac
     done
