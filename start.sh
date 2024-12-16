@@ -135,7 +135,7 @@ function main_menu() {
         echo "5. Download Alpine"
         echo "6. Exit"
         echo
-        read -t 60 -p "Enter your choice (1-4): " choice
+        read -t 60 -p "Enter your choice (1-6): " choice
         
         if [ $? -ne 0 ]; then
             echo -e "\nNo input received. Exiting..."
