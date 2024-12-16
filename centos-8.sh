@@ -56,7 +56,7 @@ function cleanup() {
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "OSDL.SH" --title "Debian 12 VM" --yesno "This will create a New Debian 12 VM. Proceed?" 10 58; then
+if whiptail --backtitle "OSDL.SH" --title "CentOS 8 VM" --yesno "This will create a New CentOS 8 VM. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "⚠ User exited script \n" && exit
@@ -130,7 +130,7 @@ function default_settings() {
   FORMAT=",efitype=4m"
   MACHINE=""
   DISK_CACHE=""
-  HN="debian12"
+  HN="centos8"
   CPU_TYPE=""
   CORE_COUNT="2"
   RAM_SIZE="2048"
@@ -149,7 +149,7 @@ function default_settings() {
   echo -e "${DGN}Using MAC Address: ${BGN}${MAC}${CL}"
   echo -e "${DGN}Using VLAN: ${BGN}Default${CL}"
   echo -e "${DGN}Using Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${BL}Creating an Debian 12 VM using the above default settings${CL}"
+  echo -e "${BL}Creating an CentOS 8 VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
@@ -202,9 +202,9 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "OSDL.SH" --inputbox "Set Hostname" 8 58 debian12 --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "OSDL.SH" --inputbox "Set Hostname" 8 58 centos8 --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="debian12"
+      HN="centos8"
       echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -300,8 +300,8 @@ function advanced_settings() {
     exit-script
   fi
 
-  if (whiptail --backtitle "OSDL.SH" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create an Debian 12 VM?" --no-button Do-Over 10 58); then
-    echo -e "${RD}Creating an Debian 12 VM using the above advanced settings${CL}"
+  if (whiptail --backtitle "OSDL.SH" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create an CentOS 8 VM?" --no-button Do-Over 10 58); then
+    echo -e "${RD}Creating an CentOS 8 VM using the above advanced settings${CL}"
   else
     header_info
     echo -e "${RD}Using Advanced Settings${CL}"
@@ -355,8 +355,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Debian 12 Disk Image"
-URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2
+msg_info "Retrieving the URL for the CentOS 8 Disk Image"
+URL=https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 wget -q --show-progress $URL
@@ -386,7 +386,7 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Debian 12 VM"
+msg_info "Creating a CentOS 8 VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags OSDL-SH -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -399,18 +399,18 @@ qm set $VMID \
   -serial0 socket \
   -description "<div align='center'><a href='https://osdl.sh'><img src='https://osdl.sh/osdl.png'></a>
 
-  # Debian 12 VM
+  # CentOS 8 VM
 
   <a href='https://donate.stripe.com/6oE00Y8fUe6V6uQ002'><img src='https://img.shields.io/badge/&#x2615;-Buy me a coffee-blue' /></a>
   </div>" >/dev/null
-msg_ok "Created a Debian 12 VM ${CL}${BL}(${HN})"
+msg_ok "Created a CentOS 8 VM ${CL}${BL}(${HN})"
 msg_ok "Completed Successfully!\n"
 
 while true; do
-    if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another Debian version?" 10 58); then
-    echo -e "\nRedirecting to Debian version selector..."
+    if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another CentOS version?" 10 58); then
+    echo -e "\nRedirecting to CentOS version selector..."
     sleep 2
-    exec bash -c "$(wget -qO- https://osdl.sh/debian.sh)"
+    exec bash -c "$(wget -qO- https://osdl.sh/centos.sh)"
     exit
 else
     whiptail --backtitle "OSDL.SH" --title "Thank You!" --msgbox "Thank you for using OSDL.SH!\n\nIf you found this script helpful, please consider supporting the project:\n\nhttps://donate.stripe.com/6oE00Y8fUe6V6uQ002\n\nSetup Cloud-Init before starting the VM." 15 58

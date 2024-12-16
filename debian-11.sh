@@ -410,7 +410,7 @@ while true; do
     if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another Debian version?" 10 58); then
     echo -e "\nRedirecting to Debian version selector..."
     sleep 2
-    exec bash -c "$(wget -qO- https://osdl.sh/ubuntu.sh)"
+    exec bash -c "$(wget -qO- https://osdl.sh/debian.sh)"
     exit
 else
     whiptail --backtitle "OSDL.SH" --title "Thank You!" --msgbox "Thank you for using OSDL.SH!\n\nIf you found this script helpful, please consider supporting the project:\n\nhttps://donate.stripe.com/6oE00Y8fUe6V6uQ002\n\nSetup Cloud-Init before starting the VM." 15 58
