@@ -71,12 +71,12 @@ function ubuntu_menu() {
 
         case "$choice" in
             1)
-                echo -e "${GREEN}Downloading Alpine 10 installation script...${NC}"
+                echo -e "${GREEN}Downloading Alpine 3.20.3 installation script...${NC}"
                 run_script "https://osdl.sh/alpine-3-20-3.sh"
                 exit $?
                 ;;
             2)
-                echo -e "${GREEN}Downloading Alpine 11 installation script...${NC}"
+                echo -e "${GREEN}Downloading Alpine 3.21.0 installation script...${NC}"
                 run_script "https://osdl.sh/alpine-3-21-0.sh"
                 exit $?
                 ;;
