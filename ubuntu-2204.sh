@@ -356,7 +356,7 @@ fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the Ubuntu 24.04 Disk Image"
-URL=https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+URL=https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 wget -q --show-progress $URL

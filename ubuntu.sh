@@ -60,9 +60,9 @@ function ubuntu_menu() {
         header_info
         show_welcome
         echo -e "\nPlease select an option:"
-        echo "1. Ubuntu 20.04 LTS (Focal Fossa)"
-        echo "2. Ubuntu 22.04 LTS (Jammy Jellyfish)"
-        echo "3. Ubuntu 24.04 LTS (Noble Numbat)"
+        echo "1. Ubuntu Server 20.04 LTS (Focal Fossa)"
+        echo "2. Ubuntu Server 22.04 LTS (Jammy Jellyfish)"
+        echo "3. Ubuntu Server 24.04 LTS (Noble Numbat)"
         echo "4. Return to Main Menu"
         echo
         
