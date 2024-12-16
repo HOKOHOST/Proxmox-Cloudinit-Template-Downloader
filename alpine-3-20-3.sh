@@ -407,7 +407,7 @@ msg_ok "Created a Alpine 3.20.3 VM ${CL}${BL}(${HN})"
 msg_ok "Completed Successfully!\n"
 
 while true; do
-    if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another Debian version?" 10 58); then
+    if (whiptail --backtitle "OSDL.SH" --title "INSTALLATION COMPLETE" --yesno "Would you like to download another Alpine version?" 10 58); then
     echo -e "\nRedirecting to Alpine version selector..."
     sleep 2
     exec bash -c "$(wget -qO- https://osdl.sh/alpine.sh)"
