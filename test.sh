@@ -94,9 +94,35 @@ function show_welcome() {
 function run_script() {
     local url=$1
     local temp_script=$(mktemp)
-    wget -O "$temp_script" "$url"
-    bash "$temp_script"
-    rm "$temp_script"
+    
+    # Download the script
+    if ! wget -q -O "$temp_script" "$url"; then
+        echo -e "${RED}Failed to download script from $url${NC}"
+        rm "$temp_script"
+        sleep 2
+        return 1
+    fi
+    
+    # Check if the downloaded file is a valid shell script
+    if head -n 1 "$temp_script" | grep -q "^#!.*sh" || file "$temp_script" | grep -q "shell script"; then
+        # Execute the script
+        bash "$temp_script"
+        local exit_status=$?
+        rm "$temp_script"
+        
+        # If exit status is 99, continue the menu loop
+        # Otherwise, pass through the exit status
+        if [ $exit_status -eq 99 ]; then
+            return 0
+        else
+            exit $exit_status
+        fi
+    else
+        echo -e "${RED}Invalid script format or URL returned HTML instead of script${NC}"
+        rm "$temp_script"
+        sleep 2
+        return 1
+    fi
 }
 
 function main_menu() {
@@ -107,7 +133,12 @@ function main_menu() {
         echo "3. Download Ubuntu"
         echo "4. Exit"
         echo
-        read -p "Enter your choice (1-4): " choice
+        read -t 60 -p "Enter your choice (1-4): " choice
+        
+        if [ $? -ne 0 ]; then
+            echo -e "\nNo input received. Exiting..."
+            exit 0
+        fi
 
         case $choice in
             1)
