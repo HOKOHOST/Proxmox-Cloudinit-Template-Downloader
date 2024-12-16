@@ -132,8 +132,8 @@ function main_menu() {
         echo "2. Download Debian"
         echo "3. Download Ubuntu Server"
         echo "4. Download CentOS"
-        echo "4. Download Alpine"
-        echo "5. Exit"
+        echo "5. Download Alpine"
+        echo "6. Exit"
         echo
         read -t 60 -p "Enter your choice (1-4): " choice
         
