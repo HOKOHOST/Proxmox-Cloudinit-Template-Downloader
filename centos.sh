@@ -22,7 +22,7 @@ function show_welcome() {
     echo "This script is maintained by CUHK LTD."
     echo "Download the latest version from: $SCRIPT_URL"
     echo
-    echo "Select the Debian version you'd like to install:"
+    echo "Select the CentOS version you'd like to install:"
 }
 
 function run_script() {
@@ -73,22 +73,22 @@ function ubuntu_menu() {
 
         case "$choice" in
             1)
-                echo -e "${GREEN}Downloading Debian 10 installation script...${NC}"
+                echo -e "${GREEN}Downloading CentOS 7 installation script...${NC}"
                 run_script "https://osdl.sh/centos-7.sh"
                 exit $?
                 ;;
             2)
-                echo -e "${GREEN}Downloading Debian 11 installation script...${NC}"
+                echo -e "${GREEN}Downloading CentOS 8 installation script...${NC}"
                 run_script "https://osdl.sh/centos-8.sh"
                 exit $?
                 ;;
             3)
-                echo -e "${GREEN}Downloading Debian 12 installation script...${NC}"
+                echo -e "${GREEN}Downloading CentOS 8 Stream installation script...${NC}"
                 run_script "https://osdl.sh/centos-8-stream.sh"
                 exit $?
                 ;;
             4)
-                echo -e "${GREEN}Downloading Debian 12 installation script...${NC}"
+                echo -e "${GREEN}Downloading CentOS 9 Stream installation script...${NC}"
                 run_script "https://osdl.sh/centos-9-stream.sh"
                 exit $?
                 ;;
