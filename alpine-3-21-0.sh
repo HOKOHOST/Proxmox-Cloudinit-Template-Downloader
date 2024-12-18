@@ -130,7 +130,7 @@ function default_settings() {
   FORMAT=",efitype=4m"
   MACHINE=""
   DISK_CACHE=""
-  HN="debian10"
+  HN="alpine3210"
   CPU_TYPE=""
   CORE_COUNT="2"
   RAM_SIZE="2048"
