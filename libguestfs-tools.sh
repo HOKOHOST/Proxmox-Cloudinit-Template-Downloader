@@ -61,7 +61,7 @@ echo "Updating package lists..."
 apt-get update >/dev/null 2>&1
 
 # Install libguestfs-tools
-echo "Installing libguestfs-tools package..."
+echo "Installing libguestfs-tools package... (May takes up to 10 minutes or more depending on you network and hardware specs)"
 if apt-get install -y libguestfs-tools >/dev/null 2>&1; then
     echo -e "${GREEN}Successfully installed libguestfs-tools!${NC}"
     sleep 2
