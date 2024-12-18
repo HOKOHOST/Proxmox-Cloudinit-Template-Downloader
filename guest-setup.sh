@@ -50,8 +50,11 @@ function run_script() {
 
 function get_disk_path() {
     local vmid=$1
+    local disk_path
+    
     # Try to get the disk path from qm config
-    local disk_path=$(qm config $vmid | grep -oP 'scsi0: \K[^,]+' | sed 's/local://')
+    disk_path=$(qm config $vmid | grep -oP 'scsi0: \K[^,]+' | sed 's/local://')
+    
     if [ -n "$disk_path" ]; then
         # Check if the path exists in /dev/pve
         if [ -e "/dev/pve/$disk_path" ]; then
@@ -77,7 +80,7 @@ function verify_vmid() {
     if ! get_disk_path $vmid >/dev/null; then
         echo -e "${RED}Cannot find disk path for VM $vmid!${NC}"
         return 1
-    }
+    fi
     
     return 0
 }
