@@ -9,6 +9,29 @@ CL='\033[0m'
 BL='\033[36m'
 GN='\033[32m'
 
+# Helper Functions
+function get_vm_disk_format() {
+    local vmid=$1
+    local format
+    
+    format=$(qm config $vmid | grep '^scsi0\|^virtio0\|^ide0' | grep -oP 'format=\K[^,]+')
+    if [ -z "$format" ]; then
+        format="raw"  # default format if not specified
+    fi
+    echo "$format"
+}
+
+function get_vm_storage_type() {
+    local storage_name=$1
+    pvesm status | grep "^$storage_name" | awk '{print $2}'
+}
+
+function get_vm_storage_content() {
+    local vmid=$1
+    qm config $vmid | grep '^scsi0\|^virtio0\|^ide0' | grep -oP 'file=\K[^,]+' || true
+}
+
+# Message Functions
 function msg_info() {
     local msg="$1"
     echo -e "${YELLOW}[INFO] ${msg}${NC}"
@@ -24,19 +47,6 @@ function msg_error() {
     echo -e "${RED}[ERROR] ${msg}${NC}"
 }
 
-function header_info {
-    clear
-    cat <<"EOF"
- ░▒▓██████▓▒░ ░▒▓███████▓▒░▒▓███████▓▒░░▒▓█▓▒░              ░▒▓███████▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░              ░▒▓██████▓▒░░▒▓████████▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓██▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
- ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓███████▓▒░░▒▓████████▓▒░▒▓██▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
-EOF
-}
-
 function get_storage_and_disk_path() {
     local vmid=$1
     local storage_info
@@ -46,10 +56,11 @@ function get_storage_and_disk_path() {
     local disk_ref
 
     # Get VM's storage information directly from config
-    local conf_storage=$(qm config $vmid | grep '^scsi0\|^virtio0\|^ide0' | grep -oP 'file=\K[^,]+')
+    local conf_storage=$(get_vm_storage_content $vmid)
+    
     if [ -n "$conf_storage" ]; then
         storage_name=$(echo $conf_storage | cut -d':' -f1)
-        storage_type=$(pvesm status | grep "^$storage_name" | awk '{print $2}')
+        storage_type=$(get_vm_storage_type "$storage_name")
         msg_ok "Found storage: ${CL}${BL}$storage_name${CL} (Type: $storage_type)"
         disk_ref="$conf_storage"
     else
@@ -88,9 +99,9 @@ function get_storage_and_disk_path() {
         # Try alternative path formats for ZFS
         if [ "$storage_type" = "zfs" ]; then
             # Try to find ZFS volume directly
-            disk_path=$(zfs list -H -o name | grep "${vmid}-disk-0" | head -n1)
-            if [ -n "$disk_path" ]; then
-                disk_path="/dev/zvol/$disk_path"
+            local zfs_pool=$(zfs list -H -o name | grep "${vmid}-disk-0" | head -n1)
+            if [ -n "$zfs_pool" ]; then
+                disk_path="/dev/zvol/$zfs_pool"
             fi
         fi
     fi
@@ -103,22 +114,6 @@ function get_storage_and_disk_path() {
         msg_error "Cannot find disk path for VM $vmid"
         return 1
     fi
-}
-
-function verify_vmid() {
-    local vmid=$1
-    if ! qm status $vmid >/dev/null 2>&1; then
-        msg_error "VM ID $vmid does not exist!"
-        return 1
-    fi
-    
-    # Verify disk path can be found
-    if ! get_storage_and_disk_path $vmid >/dev/null; then
-        msg_error "Cannot find disk path for VM $vmid!"
-        return 1
-    fi
-    
-    return 0
 }
 
 function add_qemu_agent() {
