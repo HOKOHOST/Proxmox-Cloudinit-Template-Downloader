@@ -47,6 +47,19 @@ function msg_error() {
     echo -e "${RED}[ERROR] ${msg}${NC}"
 }
 
+function header_info {
+    clear
+    cat <<"EOF"
+ ░▒▓██████▓▒░ ░▒▓███████▓▒░▒▓███████▓▒░░▒▓█▓▒░              ░▒▓███████▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░              ░▒▓██████▓▒░░▒▓████████▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓██▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓███████▓▒░░▒▓████████▓▒░▒▓██▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+EOF
+}
+
 function get_storage_and_disk_path() {
     local vmid=$1
     local storage_info
@@ -106,6 +119,13 @@ function get_storage_and_disk_path() {
         fi
     fi
 
+    # Debug information
+    msg_info "Debug Info:"
+    msg_info "Storage Name: $storage_name"
+    msg_info "Storage Type: $storage_type"
+    msg_info "Disk Reference: $disk_ref"
+    msg_info "Disk Path: $disk_path"
+
     if [ -n "$disk_path" ] && [ -e "$disk_path" ]; then
         msg_ok "Found disk path: ${CL}${BL}$disk_path${CL}"
         echo "$disk_path"
@@ -116,69 +136,52 @@ function get_storage_and_disk_path() {
     fi
 }
 
-function add_qemu_agent() {
+function verify_vmid() {
     local vmid=$1
-    msg_info "Adding QEMU Guest Agent..."
-    if qm set $vmid --agent enabled=1,fstrim_cloned_disks=1; then
-        msg_ok "QEMU Guest Agent enabled"
+    if ! qm status $vmid >/dev/null 2>&1; then
+        msg_error "VM ID $vmid does not exist!"
+        return 1
+    fi
+    
+    # Verify disk path can be found
+    if ! get_storage_and_disk_path $vmid >/dev/null; then
+        msg_error "Cannot find disk path for VM $vmid!"
+        return 1
+    fi
+    
+    return 0
+}
+
+function setup_vm() {
+    local vmid=$1
+    local mode=$2
+    
+    if [ "$mode" = "default" ]; then
+        add_qemu_agent $vmid
+        enable_ssh $vmid
+        enable_password_auth $vmid
+        enable_root_ssh $vmid
+        resize_disk $vmid 20
+        convert_to_template $vmid
     else
-        msg_error "Failed to enable QEMU Guest Agent"
-        return 1
+        echo "Choose options to configure:"
+        read -p "Add QEMU Guest Agent? (y/n): " add_agent
+        read -p "Enable SSH? (y/n): " enable_ssh_opt
+        read -p "Enable password authentication? (y/n): " enable_pass
+        read -p "Enable root SSH login? (y/n): " enable_root
+        read -p "Resize disk? (y/n): " resize_disk_opt
+        read -p "Convert to template? (y/n): " convert_template
+        
+        [[ $add_agent == [Yy]* ]] && add_qemu_agent $vmid
+        [[ $enable_ssh_opt == [Yy]* ]] && enable_ssh $vmid
+        [[ $enable_pass == [Yy]* ]] && enable_password_auth $vmid
+        [[ $enable_root == [Yy]* ]] && enable_root_ssh $vmid
+        if [[ $resize_disk_opt == [Yy]* ]]; then
+            read -p "Enter new size in GB: " new_size
+            resize_disk $vmid $new_size
+        fi
+        [[ $convert_template == [Yy]* ]] && convert_to_template $vmid
     fi
-}
-
-function enable_ssh() {
-    local vmid=$1
-    local disk_path=$(get_storage_and_disk_path $vmid)
-    msg_info "Enabling SSH access..."
-    if ! virt-customize -a "$disk_path" --run-command "systemctl enable ssh" 2>/dev/null; then
-        msg_error "Failed to enable SSH"
-        return 1
-    fi
-    msg_ok "SSH enabled"
-}
-
-function enable_password_auth() {
-    local vmid=$1
-    local disk_path=$(get_storage_and_disk_path $vmid)
-    msg_info "Enabling password authentication..."
-    if ! virt-customize -a "$disk_path" --run-command "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config" 2>/dev/null; then
-        msg_error "Failed to enable password authentication"
-        return 1
-    fi
-    msg_ok "Password authentication enabled"
-}
-
-function enable_root_ssh() {
-    local vmid=$1
-    local disk_path=$(get_storage_and_disk_path $vmid)
-    msg_info "Enabling root SSH login..."
-    if ! virt-customize -a "$disk_path" --run-command "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>/dev/null; then
-        msg_error "Failed to enable root SSH login"
-        return 1
-    fi
-    msg_ok "Root SSH login enabled"
-}
-
-function resize_disk() {
-    local vmid=$1
-    local size=$2
-    msg_info "Resizing disk to ${size}GB..."
-    if ! qm resize $vmid scsi0 ${size}G; then
-        msg_error "Failed to resize disk"
-        return 1
-    fi
-    msg_ok "Disk resized to ${size}GB"
-}
-
-function convert_to_template() {
-    local vmid=$1
-    msg_info "Converting VM to template..."
-    if ! qm template $vmid; then
-        msg_error "Failed to convert to template"
-        return 1
-    fi
-    msg_ok "Converted to template"
 }
 
 function main_loop() {
@@ -208,11 +211,11 @@ function main_loop() {
         echo
         echo "What would you like to do next?"
         echo "1) Setup another VM"
-        echo "2) Return to main menu"
+        echo "2) Exit"
         read -p "Enter choice (1/2): " next_action
         
         case $next_action in
-            2) run_script "https://osdl.sh/start.sh"; break ;;
+            2) break ;;
             *) continue ;;
         esac
     done
