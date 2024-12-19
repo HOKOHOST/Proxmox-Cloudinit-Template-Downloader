@@ -180,26 +180,66 @@ function enable_ssh_settings() {
     local disk_path=$2
     msg_info "Configuring SSH settings..."
     
-    # First attempt with selinux-relabel
-    if virt-customize -a "$disk_path" \
+    # Show command being executed for debugging
+    msg_info "Using disk path: $disk_path"
+    
+    # Try different approaches in sequence
+    
+    # Attempt 1: Basic approach
+    msg_info "Attempting basic SSH configuration..."
+    if virt-customize -v -a "$disk_path" \
+        --run-command "systemctl enable ssh || systemctl enable sshd" \
+        --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
+        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>&1; then
+        msg_ok "SSH settings configured successfully"
+        return 0
+    fi
+    
+    # Attempt 2: With SELinux relabel
+    msg_info "Attempting with SELinux relabel..."
+    if virt-customize -v -a "$disk_path" \
         --selinux-relabel \
         --run-command "systemctl enable ssh || systemctl enable sshd" \
         --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
-        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1; then
-        msg_ok "SSH settings configured"
+        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>&1; then
+        msg_ok "SSH settings configured successfully with SELinux relabel"
         return 0
     fi
     
-    # Second attempt without selinux-relabel
-    if virt-customize -a "$disk_path" \
-        --run-command "systemctl enable ssh || systemctl enable sshd" \
-        --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
-        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1; then
-        msg_ok "SSH settings configured"
+    # Attempt 3: Individual commands
+    msg_info "Attempting individual commands..."
+    local failed=0
+    
+    # Enable SSH service
+    if ! virt-customize -v -a "$disk_path" \
+        --run-command "systemctl enable ssh || systemctl enable sshd" 2>&1; then
+        msg_error "Failed to enable SSH service"
+        failed=1
+    fi
+    
+    # Configure password authentication
+    if ! virt-customize -v -a "$disk_path" \
+        --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" 2>&1; then
+        msg_error "Failed to configure password authentication"
+        failed=1
+    fi
+    
+    # Configure root login
+    if ! virt-customize -v -a "$disk_path" \
+        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>&1; then
+        msg_error "Failed to configure root login"
+        failed=1
+    fi
+    
+    if [ $failed -eq 0 ]; then
+        msg_ok "SSH settings configured successfully with individual commands"
         return 0
     fi
     
-    msg_error "Failed to configure SSH settings"
+    # If all attempts failed
+    msg_error "All SSH configuration attempts failed"
+    msg_info "Please ensure libguestfs-tools is installed and the VM is not running"
+    msg_info "You can try: apt-get install libguestfs-tools"
     return 1
 }
 
