@@ -53,7 +53,7 @@ function get_storage_and_disk_path() {
     if [ -z "$storage_info" ]; then
         msg_error "No disk configuration found"
         return 1
-    }
+    fi
     
     storage_name=$(echo "$storage_info" | cut -d':' -f1)
     storage_type=$(pvesm status | grep "^$storage_name" | awk '{print $2}')
