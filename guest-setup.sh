@@ -108,9 +108,11 @@ function enable_ssh() {
     local vmid=$1
     local disk_path=$(get_storage_and_disk_path $vmid)
     msg_info "Enabling SSH access..."
-    if ! virt-customize -a "$disk_path" --run-command "systemctl enable ssh" 2>/dev/null; then
-        msg_error "Failed to enable SSH"
-        return 1
+    if ! virt-customize -v -a "$disk_path" --run-command "systemctl enable ssh" 2>/dev/null; then
+        if ! virt-customize -v -a "$disk_path" --run-command "systemctl enable ssh.service" 2>/dev/null; then
+            msg_error "Failed to enable SSH"
+            return 1
+        fi
     fi
     msg_ok "SSH enabled"
 }
@@ -119,7 +121,8 @@ function enable_password_auth() {
     local vmid=$1
     local disk_path=$(get_storage_and_disk_path $vmid)
     msg_info "Enabling password authentication..."
-    if ! virt-customize -a "$disk_path" --run-command "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config" 2>/dev/null; then
+    if ! virt-customize -v -a "$disk_path" \
+        --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" 2>/dev/null; then
         msg_error "Failed to enable password authentication"
         return 1
     fi
@@ -130,7 +133,8 @@ function enable_root_ssh() {
     local vmid=$1
     local disk_path=$(get_storage_and_disk_path $vmid)
     msg_info "Enabling root SSH login..."
-    if ! virt-customize -a "$disk_path" --run-command "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>/dev/null; then
+    if ! virt-customize -v -a "$disk_path" \
+        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>/dev/null; then
         msg_error "Failed to enable root SSH login"
         return 1
     fi
@@ -139,45 +143,69 @@ function enable_root_ssh() {
 
 function resize_disk() {
     local vmid=$1
-    local size=$2
-    local current_size=$(qm config $vmid | grep '^scsi0:' | grep -oP 'size=\K\d+')
+    local target_size=$2
     
-    if [ -n "$current_size" ] && [ "$current_size" -gt "$size" ]; then
-        msg_info "Current disk size (${current_size}G) is larger than requested size (${size}G). Skipping resize."
+    # Get current disk size and unit (M or G)
+    local disk_info=$(qm config $vmid | grep '^scsi0:' | grep -oP 'size=\K[0-9]+[MG]')
+    local current_size=$(echo $disk_info | grep -oP '[0-9]+')
+    local unit=$(echo $disk_info | grep -oP '[MG]')
+    
+    msg_info "Current disk size: ${current_size}${unit}"
+    
+    # Convert to MB for comparison if necessary
+    local current_size_mb
+    if [ "$unit" = "G" ]; then
+        current_size_mb=$((current_size * 1024))
+    else
+        current_size_mb=$current_size
+    fi
+    
+    # Convert target size to MB
+    local target_size_mb=$((target_size * 1024))
+    
+    if [ $current_size_mb -gt $target_size_mb ]; then
+        msg_info "Current disk size (${current_size}${unit}) is larger than requested size (${target_size}G). Skipping resize."
         return 0
     fi
     
-    msg_info "Resizing disk to ${size}GB..."
-    if qm resize $vmid scsi0 ${size}G; then
-        msg_ok "Disk resized to ${size}GB"
+    msg_info "Resizing disk to ${target_size}GB..."
+    if qm resize $vmid scsi0 ${target_size}G; then
+        msg_ok "Disk resized to ${target_size}GB"
     else
         msg_error "Failed to resize disk"
         return 1
     fi
 }
 
-function convert_to_template() {
-    local vmid=$1
-    msg_info "Converting VM to template..."
-    if ! qm template $vmid; then
-        msg_error "Failed to convert to template"
-        return 1
-    fi
-    msg_ok "Converted to template"
-}
-
 function setup_vm() {
     local vmid=$1
     local mode=$2
+    local disk_path
+    
+    # Get disk path once and reuse it
+    disk_path=$(get_storage_and_disk_path $vmid)
+    if [ -z "$disk_path" ]; then
+        msg_error "Failed to get disk path"
+        return 1
+    fi
     
     if [ "$mode" = "default" ]; then
+        # Combine SSH-related commands into one virt-customize call
+        msg_info "Configuring SSH settings..."
+        if ! virt-customize -v -a "$disk_path" \
+            --run-command "systemctl enable ssh" \
+            --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
+            --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>/dev/null; then
+            msg_error "Failed to configure SSH settings"
+        else
+            msg_ok "SSH settings configured"
+        fi
+        
         add_qemu_agent $vmid
-        enable_ssh $vmid
-        enable_password_auth $vmid
-        enable_root_ssh $vmid
         resize_disk $vmid 20
         convert_to_template $vmid
     else
+        # Rest of the advanced setup code remains the same
         echo "Choose options to configure:"
         read -p "Add QEMU Guest Agent? (y/n): " add_agent
         read -p "Enable SSH? (y/n): " enable_ssh_opt
@@ -187,9 +215,24 @@ function setup_vm() {
         read -p "Convert to template? (y/n): " convert_template
         
         [[ $add_agent == [Yy]* ]] && add_qemu_agent $vmid
-        [[ $enable_ssh_opt == [Yy]* ]] && enable_ssh $vmid
-        [[ $enable_pass == [Yy]* ]] && enable_password_auth $vmid
-        [[ $enable_root == [Yy]* ]] && enable_root_ssh $vmid
+        
+        # Combine SSH-related commands if all are selected
+        if [[ $enable_ssh_opt == [Yy]* ]] && [[ $enable_pass == [Yy]* ]] && [[ $enable_root == [Yy]* ]]; then
+            msg_info "Configuring SSH settings..."
+            if ! virt-customize -v -a "$disk_path" \
+                --run-command "systemctl enable ssh" \
+                --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
+                --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>/dev/null; then
+                msg_error "Failed to configure SSH settings"
+            else
+                msg_ok "SSH settings configured"
+            fi
+        else
+            [[ $enable_ssh_opt == [Yy]* ]] && enable_ssh $vmid
+            [[ $enable_pass == [Yy]* ]] && enable_password_auth $vmid
+            [[ $enable_root == [Yy]* ]] && enable_root_ssh $vmid
+        fi
+        
         if [[ $resize_disk_opt == [Yy]* ]]; then
             read -p "Enter new size in GB: " new_size
             resize_disk $vmid $new_size
