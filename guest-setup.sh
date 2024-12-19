@@ -43,47 +43,58 @@ function get_storage_and_disk_path() {
     local disk_path
     local storage_name
     local storage_type
-    
-    # Get storage information
-    msg_info "Detecting storage configuration..."
-    storage_info=$(pvesm status -content images | awk 'NR>1 {print $1,$2}' | head -n1)
-    if [ -z "$storage_info" ]; then
-        msg_error "No valid storage location detected"
-        return 1
+    local disk_ref
+
+    # Get VM's storage information directly from config
+    local conf_storage=$(qm config $vmid | grep '^scsi0\|^virtio0\|^ide0' | grep -oP 'file=\K[^,]+')
+    if [ -n "$conf_storage" ]; then
+        storage_name=$(echo $conf_storage | cut -d':' -f1)
+        storage_type=$(pvesm status | grep "^$storage_name" | awk '{print $2}')
+        msg_ok "Found storage: ${CL}${BL}$storage_name${CL} (Type: $storage_type)"
+        disk_ref="$conf_storage"
+    else
+        # Fallback to detecting storage if not found in config
+        storage_info=$(pvesm status -content images | awk 'NR>1 {print $1,$2}' | head -n1)
+        if [ -z "$storage_info" ]; then
+            msg_error "No valid storage location detected"
+            return 1
+        fi
+        
+        storage_name=$(echo $storage_info | awk '{print $1}')
+        storage_type=$(echo $storage_info | awk '{print $2}')
+        msg_ok "Found storage: ${CL}${BL}$storage_name${CL} (Type: $storage_type)"
+
+        # Determine disk extension based on storage type
+        case $storage_type in
+            nfs|dir)
+                disk_ext=".qcow2"
+                ;;
+            btrfs|zfs|rbd)
+                disk_ext=".raw"
+                ;;
+            *)
+                disk_ext=".raw"
+                ;;
+        esac
+
+        disk_name="vm-${vmid}-disk-0${disk_ext}"
+        disk_ref="${storage_name}:${vmid}/${disk_name}"
     fi
-    
-    storage_name=$(echo $storage_info | awk '{print $1}')
-    storage_type=$(echo $storage_info | awk '{print $2}')
-    
-    msg_ok "Found storage: ${CL}${BL}$storage_name${CL} (Type: $storage_type)"
-    
-    # Determine disk extension and reference based on storage type
-    case $storage_type in
-        nfs|dir)
-            disk_ext=".qcow2"
-            disk_ref="$vmid/"
-            ;;
-        btrfs)
-            disk_ext=".raw"
-            disk_ref="$vmid/"
-            ;;
-        zfs)
-            disk_ext=".raw"
-            disk_ref="$vmid/"
-            ;;
-        *)
-            disk_ext=".raw"
-            disk_ref="$vmid/"
-            ;;
-    esac
-    
-    # Construct disk path
-    disk_name="vm-${vmid}-disk-0${disk_ext}"
-    disk_ref="${storage_name}:${disk_ref}${disk_name}"
-    
+
     # Get the actual physical path
     disk_path=$(pvesm path "$disk_ref" 2>/dev/null)
     
+    if [ -z "$disk_path" ]; then
+        # Try alternative path formats for ZFS
+        if [ "$storage_type" = "zfs" ]; then
+            # Try to find ZFS volume directly
+            disk_path=$(zfs list -H -o name | grep "${vmid}-disk-0" | head -n1)
+            if [ -n "$disk_path" ]; then
+                disk_path="/dev/zvol/$disk_path"
+            fi
+        fi
+    fi
+
     if [ -n "$disk_path" ] && [ -e "$disk_path" ]; then
         msg_ok "Found disk path: ${CL}${BL}$disk_path${CL}"
         echo "$disk_path"
