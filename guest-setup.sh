@@ -1,220 +1,160 @@
 #!/bin/bash
 
-# Color definitions
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-CL='\033[0m'
-BL='\033[36m'
-GN='\033[32m'
+# Constants
+QEMU_GUEST_AGENT_PKG="qemu-guest-agent"
+SSH_CONFIG="/etc/ssh/sshd_config"
 
-# Basic message functions
-function msg_info() {
-    local msg="$1"
-    echo -e "${YELLOW}[INFO] ${msg}${NC}"
+# Helper functions
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
-function msg_ok() {
-    local msg="$1"
-    echo -e "${GREEN}[OK] ${msg}${NC}"
+error() {
+    log "ERROR: $1" >&2
+    exit 1
 }
 
-function msg_error() {
-    local msg="$1"
-    echo -e "${RED}[ERROR] ${msg}${NC}"
+# Validate Proxmox environment
+check_proxmox() {
+    if ! command -v pvesh >/dev/null; then
+        error "This script must run on a Proxmox host"
+    }
 }
 
-function header_info {
-    clear
-    cat <<"EOF"
- ░▒▓██████▓▒░ ░▒▓███████▓▒░▒▓███████▓▒░░▒▓█▓▒░              ░▒▓███████▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░              ░▒▓██████▓▒░░▒▓████████▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓██▓▒░      ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
- ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓███████▓▒░░▒▓████████▓▒░▒▓██▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
-EOF
-}
-
-function get_storage_and_disk_path() {
+# Detect storage type and path
+get_storage_info() {
     local vmid=$1
-    local disk_path
+    local conf_file="/etc/pve/qemu-server/${vmid}.conf"
     
-    msg_info "Detecting storage configuration..."
+    if [ ! -f "$conf_file" ]; then
+        error "VM configuration file not found for VMID ${vmid}"
+    }
     
-    # Get disk configuration from VM config
-    local disk_config=$(qm config $vmid | grep '^scsi0:')
-    if [ -z "$disk_config" ]; then
-        msg_error "No SCSI disk configuration found"
-        return 1
-    fi
+    # Get storage information from config
+    local disk_line=$(grep "^scsi0:" "$conf_file")
+    if [ -z "$disk_line" ]; then
+        error "Unable to find disk configuration for VM ${vmid}"
+    }
     
-    local storage_info=$(echo "$disk_config" | sed -E 's/^scsi0: ([^,]+),.*/\1/')
-    if [ -z "$storage_info" ]; then
-        msg_error "Could not parse storage information"
-        return 1
-    fi
+    # Parse storage type and path
+    local storage_name=$(echo "$disk_line" | cut -d':' -f2 | cut -d',' -f1)
+    local storage_type=$(pvesm status -storage "$storage_name" | awk 'NR>1 {print $2}')
     
-    local storage_name=$(echo "$storage_info" | cut -d':' -f1)
-    local storage_type=$(pvesm status | grep "^$storage_name" | awk '{print $2}')
-    
-    if [ "$storage_type" = "zfs" ]; then
-        local vm_disk=$(echo "$storage_info" | cut -d':' -f2)
-        local zfs_path="${storage_name}${vm_disk}"
-        if zfs list "$zfs_path" >/dev/null 2>&1; then
-            disk_path="/dev/zvol/$zfs_path"
-        fi
-    else
-        disk_path=$(pvesm path "$storage_info" 2>/dev/null)
-    fi
-    
-    if [ -n "$disk_path" ] && [ -e "$disk_path" ]; then
-        msg_ok "Found disk path: ${CL}${BL}$disk_path${CL}"
-        echo "$disk_path"
-        return 0
-    else
-        msg_error "Cannot find disk path for VM $vmid"
-        return 1
-    fi
+    echo "$storage_type:$storage_name"
 }
 
-function enable_ssh_settings() {
+# Get disk path for VM
+get_disk_path() {
+    local vmid=$1
+    local storage_info=$2
+    
+    local storage_type=${storage_info%:*}
+    local storage_name=${storage_info#*:}
+    
+    case "$storage_type" in
+        zfs)
+            echo "/dev/zvol/rpool/data/vm-${vmid}-disk-0"
+            ;;
+        dir|nfs)
+            echo "/var/lib/vz/images/${vmid}/vm-${vmid}-disk-0.raw"
+            ;;
+        btrfs)
+            echo "/var/lib/vz/images/${vmid}/vm-${vmid}-disk-0"
+            ;;
+        *)
+            error "Unsupported storage type: ${storage_type}"
+            ;;
+    esac
+}
+
+# Configure VM settings
+configure_vm() {
     local vmid=$1
     local disk_path=$2
     
-    msg_info "Configuring SSH settings..."
-    
-    # Check if VM is running
-    if qm status $vmid | grep -q running; then
-        msg_info "Stopping VM for configuration..."
-        qm stop $vmid
+    # Stop VM if running
+    if qm status "$vmid" | grep -q running; then
+        qm stop "$vmid"
         sleep 5
     fi
     
-    # Try to configure SSH
-    if ! virt-customize -a "$disk_path" \
-        --run-command "systemctl enable ssh || systemctl enable sshd" \
-        --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
-        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1; then
-        msg_error "Failed to configure SSH settings"
-        return 1
-    fi
+    # Enable QEMU Guest Agent
+    qm set "$vmid" --agent enabled=1,fstrim_cloned_disks=1
     
-    msg_ok "SSH settings configured"
-    return 0
+    # Configure SSH using guestfish instead of virt-customize for better compatibility
+    guestfish -a "$disk_path" -i <<EOF
+        mount /dev/sda1 /
+        write-append /etc/ssh/sshd_config "PermitRootLogin yes\nPasswordAuthentication yes\n"
+        chmod 0644 /etc/ssh/sshd_config
+EOF
+    
+    if [ $? -ne 0 ]; then
+        error "Failed to configure SSH settings"
+    }
 }
 
-function setup_vm() {
+# Resize disk
+resize_disk() {
     local vmid=$1
-    local mode=$2
-    local disk_path
+    local new_size=$2
+    local storage_info=$3
     
-    # Get disk path once and reuse it
-    disk_path=$(get_storage_and_disk_path $vmid)
-    if [ -z "$disk_path" ]; then
-        msg_error "Failed to get disk path"
-        return 1
-    fi
+    # Convert size to bytes for consistent handling
+    local size_bytes=$(numfmt --from=iec "$new_size")
     
-    if [ "$mode" = "default" ]; then
-        # Default mode: configure everything
-        local failed=0
-        
-        add_qemu_agent $vmid || failed=1
-        enable_ssh_settings $vmid "$disk_path" || failed=1
-        resize_disk $vmid 20 || failed=1
-        convert_to_template $vmid || failed=1
-        
-        if [ $failed -eq 1 ]; then
-            msg_error "Some operations failed. Please check the messages above."
-            return 1
-        fi
-    else
-        # Advanced mode: custom configuration
-        echo "Choose options to configure:"
-        read -p "Add QEMU Guest Agent? (y/n): " add_agent
-        read -p "Configure SSH settings? (y/n): " config_ssh
-        read -p "Resize disk? (y/n): " resize_disk_opt
-        read -p "Convert to template? (y/n): " convert_template
-        
-        local failed=0
-        
-        if [[ $add_agent == [Yy]* ]]; then
-            add_qemu_agent $vmid || failed=1
-        fi
-        
-        if [[ $config_ssh == [Yy]* ]]; then
-            enable_ssh_settings $vmid "$disk_path" || failed=1
-        fi
-        
-        if [[ $resize_disk_opt == [Yy]* ]]; then
-            read -p "Enter new size in GB: " new_size
-            if [[ "$new_size" =~ ^[0-9]+$ ]]; then
-                resize_disk $vmid $new_size || failed=1
-            else
-                msg_error "Invalid size entered"
-                failed=1
-            fi
-        fi
-        
-        if [[ $convert_template == [Yy]* ]]; then
-            convert_to_template $vmid || failed=1
-        fi
-        
-        if [ $failed -eq 1 ]; then
-            msg_error "Some operations failed. Please check the messages above."
-            return 1
-        fi
-    fi
+    # Resize based on storage type
+    local storage_type=${storage_info%:*}
     
-    return 0
+    case "$storage_type" in
+        zfs)
+            zfs set volsize="$new_size" "rpool/data/vm-${vmid}-disk-0"
+            ;;
+        *)
+            qm resize "$vmid" scsi0 "$new_size"
+            ;;
+    esac
 }
 
-function main_loop() {
-    while true; do
-        header_info
-        echo
-        read -p "Enter VM ID to configure: " vmid
-        
-        # Validate VM ID
-        if [[ ! $vmid =~ ^[0-9]+$ ]]; then
-            msg_error "Invalid VM ID format"
-            sleep 2
-            continue
-        fi
-        
-        if ! verify_vmid $vmid; then
-            echo -e "${RED}Please check VM ID and disk path${NC}"
-            sleep 2
-            continue
-        fi
-        
-        echo
-        echo "Select setup mode:"
-        echo "1) Default (All settings, 20GB disk)"
-        echo "2) Advanced (Choose settings)"
-        read -p "Enter choice (1/2): " mode
-        
-        case $mode in
-            1) setup_vm $vmid "default" ;;
-            2) setup_vm $vmid "advanced" ;;
-            *) echo -e "${RED}Invalid choice${NC}"; sleep 2; continue ;;
-        esac
-        
-        echo
-        echo "What would you like to do next?"
-        echo "1) Setup another VM"
-        echo "2) Exit"
-        read -p "Enter choice (1/2): " next_action
-        
-        case $next_action in
-            2) break ;;
-            *) continue ;;
-        esac
-    done
+# Convert to template
+convert_to_template() {
+    local vmid=$1
+    
+    if qm status "$vmid" | grep -q running; then
+        qm stop "$vmid"
+        sleep 5
+    }
+    
+    qm template "$vmid"
 }
 
-# Start the script
-main_loop
+# Main function
+main() {
+    local vmid=$1
+    local new_size=$2
+    
+    # Validate inputs
+    if [ -z "$vmid" ] || [ -z "$new_size" ]; then
+        error "Usage: $0 <vmid> <new_size>"
+    }
+    
+    # Check Proxmox environment
+    check_proxmox
+    
+    # Get storage information
+    local storage_info=$(get_storage_info "$vmid")
+    local disk_path=$(get_disk_path "$vmid" "$storage_info")
+    
+    log "Configuring VM ${vmid}"
+    configure_vm "$vmid" "$disk_path"
+    
+    log "Resizing disk to ${new_size}"
+    resize_disk "$vmid" "$new_size" "$storage_info"
+    
+    log "Converting to template"
+    convert_to_template "$vmid"
+    
+    log "Setup completed successfully"
+}
+
+# Execute main function with provided arguments
+main "$@"
