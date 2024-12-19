@@ -5,6 +5,24 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+CL='\033[0m'
+BL='\033[36m'
+GN='\033[32m'
+
+function msg_info() {
+    local msg="$1"
+    echo -e "${YELLOW}[INFO] ${msg}${NC}"
+}
+
+function msg_ok() {
+    local msg="$1"
+    echo -e "${GREEN}[OK] ${msg}${NC}"
+}
+
+function msg_error() {
+    local msg="$1"
+    echo -e "${RED}[ERROR] ${msg}${NC}"
+}
 
 function header_info {
     clear
@@ -19,66 +37,69 @@ function header_info {
 EOF
 }
 
-function run_script() {
-    local url=$1
-    local temp_script=$(mktemp)
-    
-    if ! wget -q -O "$temp_script" "$url"; then
-        echo -e "${RED}Failed to download script from $url${NC}"
-        rm "$temp_script"
-        sleep 2
-        return 1
-    fi
-    
-    if head -n 1 "$temp_script" | grep -q "^#!.*sh" || file "$temp_script" | grep -q "shell script"; then
-        bash "$temp_script"
-        local exit_status=$?
-        rm "$temp_script"
-        
-        if [ $exit_status -eq 99 ]; then
-            return 0
-        else
-            exit $exit_status
-        fi
-    else
-        echo -e "${RED}Invalid script format or URL returned HTML instead of script${NC}"
-        rm "$temp_script"
-        sleep 2
-        return 1
-    fi
-}
-
-function get_disk_path() {
+function get_storage_and_disk_path() {
     local vmid=$1
+    local storage_info
     local disk_path
+    local storage_name
+    local storage_type
     
-    # Try to get the disk path from qm config
-    disk_path=$(qm config $vmid | grep -oP 'scsi0: \K[^,]+' | sed 's/local://')
-    
-    if [ -n "$disk_path" ]; then
-        # Check if the path exists in /dev/pve
-        if [ -e "/dev/pve/$disk_path" ]; then
-            echo "/dev/pve/$disk_path"
-            return 0
-        # Check if the path exists as is
-        elif [ -e "$disk_path" ]; then
-            echo "$disk_path"
-            return 0
-        fi
+    # Get storage information
+    msg_info "Detecting storage configuration..."
+    storage_info=$(pvesm status -content images | awk 'NR>1 {print $1,$2}' | head -n1)
+    if [ -z "$storage_info" ]; then
+        msg_error "No valid storage location detected"
+        return 1
     fi
-    return 1
+    
+    storage_name=$(echo $storage_info | awk '{print $1}')
+    storage_type=$(echo $storage_info | awk '{print $2}')
+    
+    msg_ok "Found storage: ${CL}${BL}$storage_name${CL} (Type: $storage_type)"
+    
+    # Determine disk extension and reference based on storage type
+    case $storage_type in
+        nfs|dir)
+            disk_ext=".qcow2"
+            disk_ref="$vmid/"
+            ;;
+        btrfs)
+            disk_ext=".raw"
+            disk_ref="$vmid/"
+            ;;
+        *)
+            disk_ext=".raw"
+            disk_ref="$vmid/"
+            ;;
+    esac
+    
+    # Construct disk path
+    disk_name="vm-${vmid}-disk-0${disk_ext}"
+    disk_ref="${storage_name}:${disk_ref}${disk_name}"
+    
+    # Get the actual physical path
+    disk_path=$(pvesm path "$disk_ref" 2>/dev/null)
+    
+    if [ -n "$disk_path" ] && [ -e "$disk_path" ]; then
+        msg_ok "Found disk path: ${CL}${BL}$disk_path${CL}"
+        echo "$disk_path"
+        return 0
+    else
+        msg_error "Cannot find disk path for VM $vmid"
+        return 1
+    fi
 }
 
 function verify_vmid() {
     local vmid=$1
     if ! qm status $vmid >/dev/null 2>&1; then
-        echo -e "${RED}VM ID $vmid does not exist!${NC}"
+        msg_error "VM ID $vmid does not exist!"
         return 1
     fi
     
     # Verify disk path can be found
-    if ! get_disk_path $vmid >/dev/null; then
-        echo -e "${RED}Cannot find disk path for VM $vmid!${NC}"
+    if ! get_storage_and_disk_path $vmid >/dev/null; then
+        msg_error "Cannot find disk path for VM $vmid!"
         return 1
     fi
     
@@ -87,108 +108,67 @@ function verify_vmid() {
 
 function add_qemu_agent() {
     local vmid=$1
-    echo "Adding QEMU Guest Agent..."
-    qm set $vmid --agent enabled=1,fstrim_cloned_disks=1
+    msg_info "Adding QEMU Guest Agent..."
+    if qm set $vmid --agent enabled=1,fstrim_cloned_disks=1; then
+        msg_ok "QEMU Guest Agent enabled"
+    else
+        msg_error "Failed to enable QEMU Guest Agent"
+        return 1
+    fi
 }
 
 function enable_ssh() {
     local vmid=$1
-    local disk_path=$(get_disk_path $vmid)
-    echo "Enabling SSH access..."
+    local disk_path=$(get_storage_and_disk_path $vmid)
+    msg_info "Enabling SSH access..."
     if ! virt-customize -a "$disk_path" --run-command "systemctl enable ssh" 2>/dev/null; then
-        echo -e "${RED}Failed to enable SSH${NC}"
+        msg_error "Failed to enable SSH"
         return 1
     fi
+    msg_ok "SSH enabled"
 }
 
 function enable_password_auth() {
     local vmid=$1
-    local disk_path=$(get_disk_path $vmid)
-    echo "Enabling password authentication..."
+    local disk_path=$(get_storage_and_disk_path $vmid)
+    msg_info "Enabling password authentication..."
     if ! virt-customize -a "$disk_path" --run-command "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config" 2>/dev/null; then
-        echo -e "${RED}Failed to enable password authentication${NC}"
+        msg_error "Failed to enable password authentication"
         return 1
     fi
+    msg_ok "Password authentication enabled"
 }
 
 function enable_root_ssh() {
     local vmid=$1
-    local disk_path=$(get_disk_path $vmid)
-    echo "Enabling root SSH login..."
+    local disk_path=$(get_storage_and_disk_path $vmid)
+    msg_info "Enabling root SSH login..."
     if ! virt-customize -a "$disk_path" --run-command "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>/dev/null; then
-        echo -e "${RED}Failed to enable root SSH login${NC}"
+        msg_error "Failed to enable root SSH login"
         return 1
     fi
+    msg_ok "Root SSH login enabled"
 }
 
 function resize_disk() {
     local vmid=$1
     local size=$2
-    echo "Resizing disk to ${size}GB..."
+    msg_info "Resizing disk to ${size}GB..."
     if ! qm resize $vmid scsi0 ${size}G; then
-        echo -e "${RED}Failed to resize disk${NC}"
+        msg_error "Failed to resize disk"
         return 1
     fi
+    msg_ok "Disk resized to ${size}GB"
 }
 
 function convert_to_template() {
     local vmid=$1
-    echo "Converting VM to template..."
+    msg_info "Converting VM to template..."
     if ! qm template $vmid; then
-        echo -e "${RED}Failed to convert to template${NC}"
+        msg_error "Failed to convert to template"
         return 1
     fi
-}
-
-function setup_vm() {
-    local vmid=$1
-    local mode=$2
-    local success=true
-
-    if [ "$mode" = "default" ]; then
-        echo -e "${YELLOW}Applying default settings to VM $vmid...${NC}"
-        add_qemu_agent $vmid || success=false
-        enable_ssh $vmid || success=false
-        enable_password_auth $vmid || success=false
-        enable_root_ssh $vmid || success=false
-        resize_disk $vmid 20 || success=false
-        convert_to_template $vmid || success=false
-        
-        if [ "$success" = true ]; then
-            echo -e "${GREEN}Default setup completed successfully!${NC}"
-        else
-            echo -e "${RED}Some operations failed during setup${NC}"
-        fi
-    else
-        echo -e "${YELLOW}Advanced setup mode for VM $vmid${NC}"
-        
-        read -p "Add QEMU Guest Agent? (y/n): " answer
-        [[ $answer =~ ^[Yy] ]] && (add_qemu_agent $vmid || success=false)
-        
-        read -p "Enable SSH access? (y/n): " answer
-        [[ $answer =~ ^[Yy] ]] && (enable_ssh $vmid || success=false)
-        
-        read -p "Enable password authentication? (y/n): " answer
-        [[ $answer =~ ^[Yy] ]] && (enable_password_auth $vmid || success=false)
-        
-        read -p "Enable root SSH login? (y/n): " answer
-        [[ $answer =~ ^[Yy] ]] && (enable_root_ssh $vmid || success=false)
-        
-        read -p "Resize disk? (y/n): " answer
-        if [[ $answer =~ ^[Yy] ]]; then
-            read -p "Enter new size in GB: " size
-            resize_disk $vmid $size || success=false
-        fi
-        
-        read -p "Convert to template? (y/n): " answer
-        [[ $answer =~ ^[Yy] ]] && (convert_to_template $vmid || success=false)
-        
-        if [ "$success" = true ]; then
-            echo -e "${GREEN}Advanced setup completed successfully!${NC}"
-        else
-            echo -e "${RED}Some operations failed during setup${NC}"
-        fi
-    fi
+    msg_ok "Converted to template"
 }
 
 function main_loop() {
