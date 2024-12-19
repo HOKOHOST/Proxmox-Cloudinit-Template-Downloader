@@ -60,21 +60,13 @@ function get_storage_and_disk_path() {
     local storage_name=$(echo "$storage_info" | cut -d':' -f1)
     local storage_type=$(pvesm status | grep "^$storage_name" | awk '{print $2}')
     
-    # Handle ZFS storage differently
     if [ "$storage_type" = "zfs" ]; then
-        # Get ZFS dataset name
-        local zfs_dataset=$(zfs list | grep "${vmid}-disk-" | awk '{print $1}')
-        if [ -n "$zfs_dataset" ]; then
-            # Use zfs mount point instead of zvol device
-            disk_path=$(zfs get mountpoint "$zfs_dataset" -H -o value)
-            if [ -n "$disk_path" ] && [ -e "$disk_path" ]; then
-                msg_ok "Found disk path: ${CL}${BL}$disk_path${CL}"
-                echo "$disk_path"
-                return 0
-            fi
+        local vm_disk=$(echo "$storage_info" | cut -d':' -f2)
+        local zfs_path="${storage_name}${vm_disk}"
+        if zfs list "$zfs_path" >/dev/null 2>&1; then
+            disk_path="/dev/zvol/$zfs_path"
         fi
     else
-        # Handle non-ZFS storage
         disk_path=$(pvesm path "$storage_info" 2>/dev/null)
     fi
     
@@ -91,6 +83,7 @@ function get_storage_and_disk_path() {
 function enable_ssh_settings() {
     local vmid=$1
     local disk_path=$2
+    
     msg_info "Configuring SSH settings..."
     
     # Check if VM is running
@@ -100,70 +93,17 @@ function enable_ssh_settings() {
         sleep 5
     fi
     
-    # For ZFS, try to mount the dataset first
-    if [[ "$disk_path" == *"zvol"* ]]; then
-        local zfs_dataset=$(zfs list | grep "${vmid}-disk-" | awk '{print $1}')
-        if [ -n "$zfs_dataset" ]; then
-            msg_info "Mounting ZFS dataset..."
-            local temp_mount="/tmp/vm-${vmid}-mount"
-            mkdir -p "$temp_mount"
-            if mount -o ro "/dev/zvol/${zfs_dataset}" "$temp_mount"; then
-                disk_path="$temp_mount"
-                msg_ok "Successfully mounted ZFS dataset"
-            fi
-        fi
-    fi
-    
-    # Attempt SSH configuration
-    msg_info "Configuring SSH with disk path: $disk_path"
-    if virt-customize -v -a "$disk_path" \
+    # Try to configure SSH
+    if ! virt-customize -a "$disk_path" \
         --run-command "systemctl enable ssh || systemctl enable sshd" \
         --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
-        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>&1; then
-        msg_ok "SSH settings configured successfully"
-        
-        # Cleanup if we mounted ZFS dataset
-        if [[ "$disk_path" == "/tmp/vm-${vmid}-mount" ]]; then
-            umount "$disk_path"
-            rmdir "$disk_path"
-        fi
-        return 0
+        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1; then
+        msg_error "Failed to configure SSH settings"
+        return 1
     fi
     
-    # Cleanup on failure
-    if [[ "$disk_path" == "/tmp/vm-${vmid}-mount" ]]; then
-        umount "$disk_path" 2>/dev/null
-        rmdir "$disk_path" 2>/dev/null
-    fi
-    
-    msg_error "Failed to configure SSH settings"
-    return 1
-}
-    
-    # Configure password authentication
-    if ! virt-customize -v -a "$disk_path" \
-        --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" 2>&1; then
-        msg_error "Failed to configure password authentication"
-        failed=1
-    fi
-    
-    # Configure root login
-    if ! virt-customize -v -a "$disk_path" \
-        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>&1; then
-        msg_error "Failed to configure root login"
-        failed=1
-    fi
-    
-    if [ $failed -eq 0 ]; then
-        msg_ok "SSH settings configured successfully with individual commands"
-        return 0
-    fi
-    
-    # If all attempts failed
-    msg_error "All SSH configuration attempts failed"
-    msg_info "Please ensure libguestfs-tools is installed and the VM is not running"
-    msg_info "You can try: apt-get install libguestfs-tools"
-    return 1
+    msg_ok "SSH settings configured"
+    return 0
 }
 
 function setup_vm() {
