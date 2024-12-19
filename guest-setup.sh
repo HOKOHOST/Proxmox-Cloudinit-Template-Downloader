@@ -115,7 +115,7 @@ function resize_disk() {
     if [ -z "$disk_info" ]; then
         msg_error "Could not detect current disk size"
         return 1
-    }
+    fi
     
     local current_size=$(echo $disk_info | grep -oP '[0-9]+')
     local unit=$(echo $disk_info | grep -oP '[MG]')
