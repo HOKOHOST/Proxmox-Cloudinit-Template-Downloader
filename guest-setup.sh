@@ -67,6 +67,10 @@ function get_storage_and_disk_path() {
             disk_ext=".raw"
             disk_ref="$vmid/"
             ;;
+        zfs)
+            disk_ext=".raw"
+            disk_ref="$vmid/"
+            ;;
         *)
             disk_ext=".raw"
             disk_ref="$vmid/"
