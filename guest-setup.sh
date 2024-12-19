@@ -57,16 +57,25 @@ function get_storage_and_disk_path() {
         return 1
     fi
     
-    # Get physical path
-    disk_path=$(pvesm path "$storage_info" 2>/dev/null)
-    if [ -z "$disk_path" ]; then
-        local storage_name=$(echo "$storage_info" | cut -d':' -f1)
-        local storage_type=$(pvesm status | grep "^$storage_name" | awk '{print $2}')
-        
-        if [ "$storage_type" = "zfs" ]; then
-            local vm_disk=$(echo "$storage_info" | cut -d':' -f2)
-            disk_path="/dev/zvol/${storage_name}${vm_disk}"
+    local storage_name=$(echo "$storage_info" | cut -d':' -f1)
+    local storage_type=$(pvesm status | grep "^$storage_name" | awk '{print $2}')
+    
+    # Handle ZFS storage differently
+    if [ "$storage_type" = "zfs" ]; then
+        # Get ZFS dataset name
+        local zfs_dataset=$(zfs list | grep "${vmid}-disk-" | awk '{print $1}')
+        if [ -n "$zfs_dataset" ]; then
+            # Use zfs mount point instead of zvol device
+            disk_path=$(zfs get mountpoint "$zfs_dataset" -H -o value)
+            if [ -n "$disk_path" ] && [ -e "$disk_path" ]; then
+                msg_ok "Found disk path: ${CL}${BL}$disk_path${CL}"
+                echo "$disk_path"
+                return 0
+            fi
         fi
+    else
+        # Handle non-ZFS storage
+        disk_path=$(pvesm path "$storage_info" 2>/dev/null)
     fi
     
     if [ -n "$disk_path" ] && [ -e "$disk_path" ]; then
@@ -79,143 +88,57 @@ function get_storage_and_disk_path() {
     fi
 }
 
-function verify_vmid() {
-    local vmid=$1
-    if ! qm status $vmid >/dev/null 2>&1; then
-        msg_error "VM ID $vmid does not exist!"
-        return 1
-    fi
-    
-    if ! get_storage_and_disk_path $vmid >/dev/null; then
-        msg_error "Cannot find disk path for VM $vmid!"
-        return 1
-    fi
-    
-    return 0
-}
-
-function add_qemu_agent() {
-    local vmid=$1
-    msg_info "Adding QEMU Guest Agent..."
-    if qm set $vmid --agent enabled=1,fstrim_cloned_disks=1; then
-        msg_ok "QEMU Guest Agent enabled"
-        return 0
-    else
-        msg_error "Failed to enable QEMU Guest Agent"
-        return 1
-    fi
-}
-
-function resize_disk() {
-    local vmid=$1
-    local target_size=$2
-    
-    # Get current disk size and unit (M or G)
-    local disk_info=$(qm config $vmid | grep '^scsi0:' | grep -oP 'size=\K[0-9]+[MG]')
-    if [ -z "$disk_info" ]; then
-        msg_error "Could not detect current disk size"
-        return 1
-    fi
-    
-    local current_size=$(echo $disk_info | grep -oP '[0-9]+')
-    local unit=$(echo $disk_info | grep -oP '[MG]')
-    
-    msg_info "Current disk size: ${current_size}${unit}"
-    
-    # Convert to MB for comparison
-    local current_size_mb
-    if [ "$unit" = "G" ]; then
-        current_size_mb=$((current_size * 1024))
-    else
-        current_size_mb=$current_size
-    fi
-    
-    # Convert target size to MB
-    local target_size_mb=$((target_size * 1024))
-    
-    if [ $current_size_mb -gt $target_size_mb ]; then
-        msg_info "Current disk size (${current_size}${unit}) is larger than requested size (${target_size}G). Skipping resize."
-        return 0
-    fi
-    
-    msg_info "Resizing disk to ${target_size}GB..."
-    if qm resize $vmid scsi0 ${target_size}G; then
-        msg_ok "Disk resized to ${target_size}GB"
-        return 0
-    else
-        msg_error "Failed to resize disk"
-        return 1
-    fi
-}
-
-function convert_to_template() {
-    local vmid=$1
-    msg_info "Converting VM to template..."
-    
-    # Check if VM exists
-    if ! qm status $vmid >/dev/null 2>&1; then
-        msg_error "VM $vmid does not exist"
-        return 1
-    fi
-    
-    # Stop the VM if it's running
-    if qm status $vmid | grep -q running; then
-        msg_info "Stopping VM..."
-        qm stop $vmid
-        sleep 5
-    fi
-    
-    # Convert to template
-    if qm template $vmid; then
-        msg_ok "Converted to template"
-        return 0
-    else
-        msg_error "Failed to convert to template"
-        return 1
-    fi
-}
-
 function enable_ssh_settings() {
     local vmid=$1
     local disk_path=$2
     msg_info "Configuring SSH settings..."
     
-    # Show command being executed for debugging
-    msg_info "Using disk path: $disk_path"
+    # Check if VM is running
+    if qm status $vmid | grep -q running; then
+        msg_info "Stopping VM for configuration..."
+        qm stop $vmid
+        sleep 5
+    fi
     
-    # Try different approaches in sequence
+    # For ZFS, try to mount the dataset first
+    if [[ "$disk_path" == *"zvol"* ]]; then
+        local zfs_dataset=$(zfs list | grep "${vmid}-disk-" | awk '{print $1}')
+        if [ -n "$zfs_dataset" ]; then
+            msg_info "Mounting ZFS dataset..."
+            local temp_mount="/tmp/vm-${vmid}-mount"
+            mkdir -p "$temp_mount"
+            if mount -o ro "/dev/zvol/${zfs_dataset}" "$temp_mount"; then
+                disk_path="$temp_mount"
+                msg_ok "Successfully mounted ZFS dataset"
+            fi
+        fi
+    fi
     
-    # Attempt 1: Basic approach
-    msg_info "Attempting basic SSH configuration..."
+    # Attempt SSH configuration
+    msg_info "Configuring SSH with disk path: $disk_path"
     if virt-customize -v -a "$disk_path" \
         --run-command "systemctl enable ssh || systemctl enable sshd" \
         --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
         --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>&1; then
         msg_ok "SSH settings configured successfully"
+        
+        # Cleanup if we mounted ZFS dataset
+        if [[ "$disk_path" == "/tmp/vm-${vmid}-mount" ]]; then
+            umount "$disk_path"
+            rmdir "$disk_path"
+        fi
         return 0
     fi
     
-    # Attempt 2: With SELinux relabel
-    msg_info "Attempting with SELinux relabel..."
-    if virt-customize -v -a "$disk_path" \
-        --selinux-relabel \
-        --run-command "systemctl enable ssh || systemctl enable sshd" \
-        --run-command "sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
-        --run-command "sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config" 2>&1; then
-        msg_ok "SSH settings configured successfully with SELinux relabel"
-        return 0
+    # Cleanup on failure
+    if [[ "$disk_path" == "/tmp/vm-${vmid}-mount" ]]; then
+        umount "$disk_path" 2>/dev/null
+        rmdir "$disk_path" 2>/dev/null
     fi
     
-    # Attempt 3: Individual commands
-    msg_info "Attempting individual commands..."
-    local failed=0
-    
-    # Enable SSH service
-    if ! virt-customize -v -a "$disk_path" \
-        --run-command "systemctl enable ssh || systemctl enable sshd" 2>&1; then
-        msg_error "Failed to enable SSH service"
-        failed=1
-    fi
+    msg_error "Failed to configure SSH settings"
+    return 1
+}
     
     # Configure password authentication
     if ! virt-customize -v -a "$disk_path" \
